@@ -5,81 +5,41 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DiscoApp · Library</title>
 <style>
-  /* ---------- Apple Music–style look ---------- */
   :root{
-    --bg:#ffffff;
-    --text:#111111;
-    --muted:#6b6b6b;
-    --hair:#e6e6e6;           /* separators */
-    --red:#ff3b30;            /* Apple Music accent */
-    --tile:#f5f5f7;           /* search bg */
+    --bg:#ffffff; --text:#111111; --muted:#6b6b6b;
+    --hair:#e6e6e6; --red:#ff3b30; --tile:#f5f5f7;
   }
   html,body{height:100%}
-  body{
-    margin:0;background:var(--bg);color:var(--text);
+  body{margin:0;background:var(--bg);color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-  }
-
-  /* Nav with large title + search */
-  header{
-    position:sticky;top:0;z-index:10;background:var(--bg);
-    padding:8px 12px 6px 12px;border-bottom:1px solid var(--hair);
-  }
-  .title{
-    font-size:28px;font-weight:700;letter-spacing:.2px;margin:8px 2px 10px 2px;
-  }
-  .search{
-    display:flex;align-items:center;gap:8px;
-    background:var(--tile);border:1px solid var(--hair);
-    padding:10px 12px;border-radius:12px;
-  }
-  .search input{
-    flex:1;border:0;background:transparent;outline:none;font-size:16px;color:var(--text);
-  }
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  header{position:sticky;top:0;z-index:10;background:var(--bg);
+    padding:8px 12px 6px 12px;border-bottom:1px solid var(--hair);}
+  .title{font-size:28px;font-weight:700;margin:8px 2px 10px 2px;}
+  .search{display:flex;align-items:center;gap:8px;background:var(--tile);border:1px solid var(--hair);
+    padding:10px 12px;border-radius:12px;}
+  .search input{flex:1;border:0;background:transparent;outline:none;font-size:16px;color:var(--text);}
   .search .mag{opacity:.6}
-
-  /* Info row (count + page) */
-  .info{
-    display:flex;justify-content:space-between;align-items:center;
-    font-size:13px;color:var(--muted);padding:8px 2px 6px 2px;
-  }
-
-  /* List of albums (Apple Music style rows) */
+  .info{display:flex;justify-content:space-between;align-items:center;
+    font-size:13px;color:var(--muted);padding:8px 2px 6px 2px;}
   .list{padding:0;margin:0;list-style:none}
-  .row{
-    display:flex;align-items:center;gap:12px;padding:10px 12px;
-    border-bottom:1px solid var(--hair);cursor:pointer;
-  }
-  .art{
-    width:64px;height:64px;border-radius:8px;object-fit:cover;background:#ddd;flex:0 0 64px;
-  }
+  .row{display:flex;align-items:center;gap:12px;padding:10px 12px;
+    border-bottom:1px solid var(--hair);cursor:pointer;}
+  .art{width:64px;height:64px;border-radius:8px;object-fit:cover;background:#ddd;flex:0 0 64px;}
   .meta{min-width:0}
   .titleT{font-weight:700;font-size:16px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .subT{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-
-  /* Bottom toolbar */
-  .toolbar{
-    position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--hair);
-    display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;
-  }
+  .toolbar{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--hair);
+    display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;}
   .group{display:flex;gap:8px;align-items:center}
-  .btn{
-    border:1px solid var(--hair);background:var(--tile);color:var(--text);
-    padding:8px 12px;border-radius:10px;font-size:15px;cursor:pointer;
-  }
+  .btn{border:1px solid var(--hair);background:var(--tile);color:var(--text);
+    padding:8px 12px;border-radius:10px;font-size:15px;cursor:pointer;}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .accent{border-color:var(--red);color:#fff;background:var(--red)}
-  .value{font-size:13px;color:var(--muted)}
-
-  /* Modal (sheet) */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center}
   .modal.hidden{display:none}
-  .sheet{
-    width:100%;max-width:720px;background:var(--bg);border-radius:16px 16px 0 0;
-    border:1px solid var(--hair);border-bottom:0;max-height:90vh;overflow:auto;
-    box-shadow:0 -10px 30px rgba(0,0,0,.15);
-  }
+  .sheet{width:100%;max-width:720px;background:var(--bg);border-radius:16px 16px 0 0;
+    border:1px solid var(--hair);border-bottom:0;max-height:90vh;overflow:auto;box-shadow:0 -10px 30px rgba(0,0,0,.15);}
   .drag{width:48px;height:5px;border-radius:999px;background:var(--hair);margin:8px auto}
   .hero{width:100%;max-height:360px;object-fit:cover;border-bottom:1px solid var(--hair);background:#ddd}
   #md-body{padding:14px 16px 18px 16px}
@@ -88,10 +48,8 @@
   .section{margin:12px 0 6px 0;font-weight:700}
   .tracks{margin:6px 0 0 0;padding-left:18px}
   .tracks li{margin:3px 0}
-  .link{
-    display:inline-block;margin-top:10px;padding:8px 12px;border-radius:10px;
-    border:1px solid var(--hair);background:var(--tile);text-decoration:none;color:var(--text);
-  }
+  .link{display:inline-block;margin-top:10px;padding:8px 12px;border-radius:10px;
+    border:1px solid var(--hair);background:var(--tile);text-decoration:none;color:var(--text);}
 </style>
 </head>
 <body>
@@ -112,19 +70,14 @@
   <ul id="list" class="list" aria-live="polite"></ul>
 </main>
 
-<!-- Bottom toolbar -->
 <div class="toolbar">
   <div class="group">
     <button id="prev" class="btn">◀︎ Prev</button>
     <button id="next" class="btn">Next ▶︎</button>
     <button id="random" class="btn accent">🎲 Random</button>
   </div>
-  <div class="group">
-    <span id="value" class="value">Value: —</span>
-  </div>
 </div>
 
-<!-- Details sheet -->
 <div id="modal" class="modal hidden" aria-hidden="true">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="md-title">
     <div class="drag"></div>
@@ -135,209 +88,117 @@
 
 <script>
 (function(){
-  /* ------------- CONFIG ------------- */
-  var API = "https://disco.slimjim316.workers.dev";   // ← no trailing slash
+  var API = "https://disco.slimjim316.workers.dev"; // ✅ your Worker URL
   var USER = "slimjim316";
 
-  /* ------------- STATE -------------- */
-  var page = 1, per = 100, folder = 0, cache = [], total = 0, pages = 1, q = "";
+  var page=1, per=100, folder=0, cache=[], total=0, pages=1, q="";
 
-  /* ------------- XHR ----------------- */
   function get(url, cb){
-    var x = new XMLHttpRequest();
-    x.open("GET", url, true);
-    x.onreadystatechange = function(){
-      if (x.readyState === 4){
-        if (x.status >= 200 && x.status < 300) {
-          try { cb(null, JSON.parse(x.responseText)); }
-          catch(e){ cb(new Error("Bad JSON from API")); }
-        } else {
-          if (x.status === 0) cb(new Error("Network/CORS error. Check API URL and no trailing slash."));
-          else cb(new Error(x.status + " " + (x.responseText || x.statusText)));
+    var x=new XMLHttpRequest();
+    x.open("GET",url,true);
+    x.onreadystatechange=function(){
+      if(x.readyState===4){
+        if(x.status>=200 && x.status<300){
+          try{cb(null,JSON.parse(x.responseText));}catch(e){cb(new Error("Bad JSON"));}
+        }else{
+          if(x.status===0) cb(new Error("Network/CORS error"));
+          else cb(new Error(x.status+" "+(x.responseText||x.statusText)));
         }
       }
     };
-    x.onerror = function(){ cb(new Error("Request failed (possible CORS or offline).")); };
+    x.onerror=function(){cb(new Error("Request failed"));};
     x.send();
   }
 
-  /* ------------- LOADERS ------------- */
-  function loadValue(){
-    get(API + "/api/value?username=" + encodeURIComponent(USER), function(err, data){
-      if (err) return;
-      if (data && typeof data.minimum === "number") {
-        document.getElementById("value").textContent =
-          "Value: £" + data.minimum.toFixed(0) + " / £" + data.median.toFixed(0) + " / £" + data.maximum.toFixed(0);
-      }
+  function loadPage(p,cb){
+    page=p;
+    document.getElementById("page").textContent="Page "+page;
+    var url=API+"/api/collection?username="+encodeURIComponent(USER)+"&folder_id="+folder+"&per_page="+per+"&page="+page+"&sort=artist&sort_order=asc";
+    get(url,function(err,data){
+      if(err){alert(err.message);return;}
+      total=data.pagination?data.pagination.items:0;
+      pages=data.pagination?data.pagination.pages:1;
+      cache=(data.releases||[]).map(function(r){
+        var rel=r.basic_information||{};
+        return{
+          id:rel.id,title:rel.title||"",
+          artist:(rel.artists&&rel.artists[0]&&rel.artists[0].name)||"",
+          year:rel.year||"",
+          catno:rel.labels&&rel.labels[0]?rel.labels[0].catno:"",
+          thumb:rel.cover_image||(rel.thumb||"")
+        };
+      });
+      cache.sort(function(a,b){
+        return (a.artist||"").toLowerCase().localeCompare((b.artist||"").toLowerCase());
+      });
+      render(); if(typeof cb==="function")cb();
     });
   }
 
-  function loadPage(p, cb){
-    page = p;
-    document.getElementById("page").textContent = "Page " + page;
-    get(API + "/api/collection?username=" + encodeURIComponent(USER) +
-       "&folder_id=" + folder + "&per_page=" + per + "&page=" + page,
-      function(err, data){
-        if (err){ alert(err.message); return; }
-        total = data.pagination ? data.pagination.items : 0;
-        pages = data.pagination ? data.pagination.pages : 1;
-        cache = (data.releases || []).map(function(r){
-          var rel = r.basic_information || {};
-          return {
-            id: rel.id,
-            title: rel.title || "",
-            artist: (rel.artists && rel.artists[0] && rel.artists[0].name) || "",
-            year: rel.year || "",
-            catno: rel.labels && rel.labels[0] ? rel.labels[0].catno : "",
-            thumb: rel.cover_image || (rel.thumb || "")
-          };
-        });
-        render();
-        if (typeof cb === "function") cb();
-      });
-  }
-
-  /* ------------- RENDER -------------- */
-  function matches(item, needle){
-    if (!needle) return true;
-    needle = needle.toLowerCase();
-    return (item.title.toLowerCase().indexOf(needle) > -1) ||
-           (item.artist.toLowerCase().indexOf(needle) > -1) ||
-           (String(item.year).indexOf(needle) > -1) ||
-           (String(item.catno).toLowerCase().indexOf(needle) > -1);
+  function matches(item,needle){
+    if(!needle) return true;
+    needle=needle.toLowerCase();
+    return item.title.toLowerCase().indexOf(needle)>-1||
+           item.artist.toLowerCase().indexOf(needle)>-1||
+           String(item.year).indexOf(needle)>-1||
+           String(item.catno).toLowerCase().indexOf(needle)>-1;
   }
 
   function render(){
-    var list = document.getElementById("list");
-    list.innerHTML = "";
-    var filtered = [];
-    for (var i=0;i<cache.length;i++){
-      if (matches(cache[i], q)) filtered.push(cache[i]);
-    }
-    document.getElementById("count").textContent = filtered.length + " of " + cache.length + " (total " + total + ")";
-
-    for (var j=0;j<filtered.length;j++){
-      var it = filtered[j];
-      var li = document.createElement("li"); li.className = "row";
-      var img = document.createElement("img"); img.className = "art"; img.alt = ""; img.src = it.thumb || "";
-      var meta = document.createElement("div"); meta.className = "meta";
-      var t = document.createElement("div"); t.className = "titleT"; t.textContent = it.title;
-      var s = document.createElement("div"); s.className = "subT";
-      s.textContent = it.artist + (it.year ? " • " + it.year : "") + (it.catno ? " • " + it.catno : "");
+    var list=document.getElementById("list"); list.innerHTML="";
+    var filtered=cache.filter(function(it){return matches(it,q);});
+    document.getElementById("count").textContent=filtered.length+" of "+cache.length+" (total "+total+")";
+    filtered.forEach(function(it){
+      var li=document.createElement("li"); li.className="row";
+      var img=document.createElement("img"); img.className="art"; img.alt=""; img.src=it.thumb||"";
+      var meta=document.createElement("div"); meta.className="meta";
+      var t=document.createElement("div"); t.className="titleT"; t.textContent=it.title;
+      var s=document.createElement("div"); s.className="subT"; s.textContent=it.artist+(it.year?" • "+it.year:"")+(it.catno?" • "+it.catno:"");
       meta.appendChild(t); meta.appendChild(s);
       li.appendChild(img); li.appendChild(meta);
-
-      li.addEventListener("click", (function(id){ return function(){ showDetailsById(id); };})(it.id));
+      li.addEventListener("click",(function(id){return function(){showDetailsById(id);};})(it.id));
       list.appendChild(li);
-    }
-
-    document.getElementById("prev").disabled = page<=1;
-    document.getElementById("next").disabled = page>=pages;
-  }
-
-  /* ------------- DETAILS ------------- */
-  function fetchRelease(id, cb){
-    get(API + "/api/release?id=" + encodeURIComponent(id), function(err, data){
-      if (err) { cb(err); return; }
-      cb(null, data);
     });
+    document.getElementById("prev").disabled=page<=1;
+    document.getElementById("next").disabled=page>=pages;
   }
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g,function(m){
-      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
-    });
-  }
-  function openModal(){ 
-    var m = document.getElementById("modal");
-    m.className = "modal"; m.setAttribute("aria-hidden","false");
-  }
-  function closeModal(){
-    var m = document.getElementById("modal");
-    m.className = "modal hidden"; m.setAttribute("aria-hidden","true");
-    document.getElementById("md-body").innerHTML = "";
-    document.getElementById("md-hero").src = "";
-  }
+
+  function fetchRelease(id,cb){get(API+"/api/release?id="+encodeURIComponent(id),cb);}
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(m){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);});}
+  function openModal(){var m=document.getElementById("modal");m.className="modal";m.setAttribute("aria-hidden","false");}
+  function closeModal(){var m=document.getElementById("modal");m.className="modal hidden";m.setAttribute("aria-hidden","true");document.getElementById("md-body").innerHTML="";document.getElementById("md-hero").src="";}
   function showDetails(release){
-    var body = document.getElementById("md-body");
-    var hero = document.getElementById("md-hero");
-    var title = (release.title || "");
-    var artists = (release.artists && release.artists.length ? release.artists[0].name : "");
-    var year = release.year || "";
-    var lbl = (release.labels && release.labels.length ? release.labels[0].name : "");
-    var cat = (release.labels && release.labels.length ? release.labels[0].catno : "");
-    var country = release.country || "";
-    var fmts = (release.formats && release.formats.length ? release.formats[0].name : "");
-    var genres = (release.genres ? release.genres.join(", ") : "");
-    var styles = (release.styles ? release.styles.join(", ") : "");
-    var notes = release.notes || "";
-    var art = (release.images && release.images.length ? release.images[0].uri : "");
-    hero.src = art || "";
-
-    var html = '';
-    html += '<h2 id="md-title">'+escapeHtml(title)+'</h2>';
-    html += '<div class="meta-row">'+escapeHtml(artists)+(year? " • "+year : "")+'</div>';
-    html += '<div class="meta-row">'+(lbl? escapeHtml(lbl) : "")+(cat? " • "+escapeHtml(cat):"")+(country? " • "+escapeHtml(country):"")+'</div>';
-    if (fmts)   html += '<div class="meta-row">Format: '+escapeHtml(fmts)+'</div>';
-    if (genres) html += '<div class="meta-row">Genres: '+escapeHtml(genres)+'</div>';
-    if (styles) html += '<div class="meta-row">Styles: '+escapeHtml(styles)+'</div>';
-
-    if (release.tracklist && release.tracklist.length){
-      html += '<div class="section">Tracklist</div><ol class="tracks">';
-      for (var i=0;i<release.tracklist.length;i++){
-        var t = release.tracklist[i];
-        var nm = t.title || "";
-        var pos = t.position || "";
-        var dur = t.duration || "";
-        html += '<li>'+escapeHtml((pos? pos+" – " : "")+nm+(dur? " ("+dur+")": ""))+'</li>';
-      }
-      html += '</ol>';
-    }
-    if (notes){
-      html += '<div class="section">Notes</div>';
-      html += '<div style="white-space:pre-wrap">'+escapeHtml(notes)+'</div>';
-    }
-    if (release.uri){
-      html += '<a class="link" target="_blank" rel="noopener" href="'+release.uri+'">View on Discogs</a>';
-    }
-    body.innerHTML = html;
-    openModal();
+    var body=document.getElementById("md-body"),hero=document.getElementById("md-hero");
+    var title=release.title||"",artists=(release.artists&&release.artists[0]?release.artists[0].name:""),year=release.year||"",lbl=(release.labels&&release.labels[0]?release.labels[0].name:""),cat=(release.labels&&release.labels[0]?release.labels[0].catno:""),country=release.country||"",fmts=(release.formats&&release.formats[0]?release.formats[0].name:""),genres=(release.genres?release.genres.join(", "):""),styles=(release.styles?release.styles.join(", "):""),notes=release.notes||"",art=(release.images&&release.images[0]?release.images[0].uri:"");
+    hero.src=art||"";
+    var html='<h2 id="md-title">'+escapeHtml(title)+'</h2>';
+    html+='<div class="meta-row">'+escapeHtml(artists)+(year?" • "+year:"")+'</div>';
+    html+='<div class="meta-row">'+(lbl?escapeHtml(lbl):"")+(cat?" • "+escapeHtml(cat):"")+(country?" • "+escapeHtml(country):"")+'</div>';
+    if(fmts) html+='<div class="meta-row">Format: '+escapeHtml(fmts)+'</div>';
+    if(genres) html+='<div class="meta-row">Genres: '+escapeHtml(genres)+'</div>';
+    if(styles) html+='<div class="meta-row">Styles: '+escapeHtml(styles)+'</div>';
+    if(release.tracklist&&release.tracklist.length){html+='<div class="section">Tracklist</div><ol class="tracks">';
+      release.tracklist.forEach(function(t){html+='<li>'+escapeHtml((t.position?t.position+" – ":"")+t.title+(t.duration?" ("+t.duration+")":""))+'</li>';});
+      html+='</ol>';}
+    if(notes){html+='<div class="section">Notes</div><div style="white-space:pre-wrap">'+escapeHtml(notes)+'</div>';}
+    if(release.uri){html+='<a class="link" target="_blank" rel="noopener" href="'+release.uri+'">View on Discogs</a>';}
+    body.innerHTML=html;openModal();
   }
-  function showDetailsById(id){
-    fetchRelease(id, function(err, data){
-      if (err){ alert("Could not load details: " + err.message); return; }
-      showDetails(data);
-    });
-  }
+  function showDetailsById(id){fetchRelease(id,function(err,data){if(err){alert("Could not load details");return;}showDetails(data);});}
 
-  /* ------------- RANDOM -------------- */
   function openRandom(){
-    if (!total) { alert("Collection not loaded yet."); return; }
-    var idx = Math.floor(Math.random() * total) + 1; // 1..total
-    var targetPage = Math.ceil(idx / per);
-    var indexOnPage = (idx - 1) % per;
-
-    if (page === targetPage && cache[indexOnPage]){
-      showDetailsById(cache[indexOnPage].id);
-      return;
-    }
-    loadPage(targetPage, function(){
-      if (cache[indexOnPage]) showDetailsById(cache[indexOnPage].id);
-      else alert("Could not pick a random item on that page.");
-    });
+    if(!total){alert("Collection not loaded yet.");return;}
+    var idx=Math.floor(Math.random()*total)+1,targetPage=Math.ceil(idx/per),indexOnPage=(idx-1)%per;
+    if(page===targetPage&&cache[indexOnPage]){showDetailsById(cache[indexOnPage].id);return;}
+    loadPage(targetPage,function(){if(cache[indexOnPage])showDetailsById(cache[indexOnPage].id);else alert("Random pick failed");});
   }
 
-  /* ------------- EVENTS -------------- */
-  document.getElementById("q").addEventListener("input", function(e){ q = e.target.value; render(); });
-  document.getElementById("prev").addEventListener("click", function(){ if (page>1) loadPage(page-1); });
-  document.getElementById("next").addEventListener("click", function(){ if (page<pages) loadPage(page+1); });
-  document.getElementById("random").addEventListener("click", openRandom);
-  document.getElementById("modal").addEventListener("click", function(e){
-    // tap outside sheet to close
-    if (e.target && e.target.id === "modal") closeModal();
-  });
+  document.getElementById("q").addEventListener("input",function(e){q=e.target.value;render();});
+  document.getElementById("prev").addEventListener("click",function(){if(page>1)loadPage(page-1);});
+  document.getElementById("next").addEventListener("click",function(){if(page<pages)loadPage(page+1);});
+  document.getElementById("random").addEventListener("click",openRandom);
+  document.getElementById("modal").addEventListener("click",function(e){if(e.target&&e.target.id==="modal")closeModal();});
 
-  /* ------------- INIT ---------------- */
-  loadValue();
   loadPage(1);
 })();
 </script>
