@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vinyl Shelf</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#111;color:#eee}
+  header{position:sticky;top:0;background:#111;padding:12px;border-bottom:1px solid #333;z-index:2}
+  input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #333;background:#1a1a1a;color:#eee;font-size:16px}
+  .bar{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap}
+  .pill{padding:6px 10px;border:1px solid #333;border-radius:999px;background:#1a1a1a}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:12px}
+  .card{background:#181818;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden}
+  .cover{width:100%;height:120px;object-fit:cover;background:#222}
+  .meta{padding:8px}
+  .t{font-weight:600;font-size:13px;line-height:1.2}
+  .a{opacity:.8;font-size:12px}
+  footer{padding:12px;opacity:.7}
+  button{cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+<header>
+  <input id="q" placeholder="Search artist, title, cat#, year…" autocomplete="off">
+  <div class="bar">
+    <span id="count" class="pill">0 items</span>
+    <span id="page" class="pill">Page 1</span>
+    <button id="prev" class="pill">◀ Prev</button>
+    <button id="next" class="pill">Next ▶</button>
+    <span id="value" class="pill">Value: —</span>
+  </div>
+</header>
+
+<main id="grid" class="grid" aria-live="polite"></main>
+<footer id="foot"></footer>
+
+<script>
+(function(){
+  // 👇 EDIT THIS ONE LINE ONLY — paste your Cloudflare Worker URL between the quotes
+  var API = "https://disco.slimjim316.workers.dev";         
+
+  // Username is pre-filled
+  var USER = "slimjim316";             
+
+  var page = 1, per = 100, folder = 0, cache = [], total = 0, pages = 1, q = "";
+
+  function get(url, cb){
+    var x = new XMLHttpRequest();
+    x.open("GET", url, true);
+    x.onreadystatechange = function(){
+      if (x.readyState === 4){
+        if (x.status >= 200 && x.status < 300) cb(null, JSON.parse(x.responseText));
+        else cb(new Error(x.status + " " + x.responseText));
+      }
+    };
+    x.send();
+  }
+
+  function loadValue(){
+    get(API + "/api/value?username=" + encodeURIComponent(USER), function(err, data){
+      if (err) return;
+      if (data && typeof data.minimum === "number") {
+        document.getElementById("value").textContent =
+          "£" + data.minimum.toFixed(0) + " / £" + data.median.toFixed(0) + " / £" + data.maximum.toFixed(0);
+      }
+    });
+  }
+
+  function loadPage(p){
+    page = p;
+    document.getElementById("page").textContent = "Page " + page;
+    get(API + "/api/collection?username=" + encodeURIComponent(USER) +
+       "&folder_id=" + folder + "&per_page=" + per + "&page=" + page,
+      function(err, data){
+        if (err){ alert(err.message); return; }
+        total = data.pagination ? data.pagination.items : 0;
+        pages = data.pagination ? data.pagination.pages : 1;
+        cache = (data.releases || []).map(function(r){
+          var rel = r.basic_information || {};
+          return {
+            id: rel.id,
+            title: rel.title || "",
+            artist: (rel.artists && rel.artists[0] && rel.artists[0].name) || "",
+            year: rel.year || "",
+            catno: rel.labels && rel.labels[0] ? rel.labels[0].catno : "",
+            thumb: rel.cover_image || (rel.thumb || "")
+          };
+        });
+        render();
+      });
+  }
+
+  function matches(item, needle){
+    if (!needle) return true;
+    needle = needle.toLowerCase();
+    return (item.title.toLowerCase().indexOf(needle) > -1) ||
+           (item.artist.toLowerCase().indexOf(needle) > -1) ||
+           (String(item.year).indexOf(needle) > -1) ||
+           (String(item.catno).toLowerCase().indexOf(needle) > -1);
+  }
+
+  function render(){
+    var grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    var filtered = [];
+    for (var i=0;i<cache.length;i++){
+      if (matches(cache[i], q)) filtered.push(cache[i]);
+    }
+    document.getElementById("count").textContent = filtered.length + " of " + cache.length + " (total " + total + ")";
+    for (var j=0;j<filtered.length;j++){
+      var it = filtered[j];
+      var card = document.createElement("div"); card.className = "card";
+      var img = document.createElement("img"); img.className = "cover"; img.alt = "";
+      img.src = it.thumb || "";
+      var m = document.createElement("div"); m.className = "meta";
+      var t = document.createElement("div"); t.className = "t"; t.textContent = it.title;
+      var a = document.createElement("div"); a.className = "a"; a.textContent = it.artist + (it.year ? " • " + it.year : "");
+      m.appendChild(t); m.appendChild(a);
+      card.appendChild(img); card.appendChild(m);
+      grid.appendChild(card);
+    }
+    document.getElementById("prev").disabled = page<=1;
+    document.getElementById("next").disabled = page>=pages;
+    document.getElementById("foot").textContent = "Page " + page + " of " + pages;
+  }
+
+  document.getElementById("q").addEventListener("input", function(e){ q = e.target.value; render(); });
+  document.getElementById("prev").addEventListener("click", function(){ if (page>1) loadPage(page-1); });
+  document.getElementById("next").addEventListener("click", function(){ if (page<pages) loadPage(page+1); });
+
+  loadValue();
+  loadPage(1);
+})();
+</script>
+</body>
+</html>
