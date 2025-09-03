@@ -19,48 +19,330 @@
 
   /* Top area */
   header{
-    position:sticky;top:0;z-index:10;background:var(--bg);
-    padding:8px 12px 6px 12px;border-bottom:1px solid var(--hair);
+    position:sticky; top:0; z-index:10; background:var(--bg);
+    padding:8px 12px 6px 12px; border-bottom:1px solid var(--hair);
   }
   .title{font-size:28px;font-weight:700;margin:8px 2px 10px 2px;}
   .search{
-    display:flex;align-items:center;gap:8px;background:var(--tile);
-    border:1px solid var(--hair);padding:10px 12px;border-radius:12px;
+    display:flex; align-items:center; gap:8px; background:var(--tile);
+    border:1px solid var(--hair); padding:10px 12px; border-radius:12px;
   }
   .search input{flex:1;border:0;background:transparent;outline:none;font-size:16px;color:var(--text);}
   .search .mag{opacity:.6}
-  .info{
-    display:flex;justify-content:space-between;align-items:center;
-    font-size:13px;color:var(--muted);padding:8px 2px 6px 2px;
+  .info{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding:8px 2px 6px 2px;}
+
+  /* Content area */
+  main{padding:10px 10px 90px 10px;}
+
+  /* GRID layout */
+  .grid{display:grid;grid-gap:12px; /* use grid-gap for older Safari */}
+  /* 4 responsive columns by default; auto-fill is flaky on old Safari */
+  .grid{grid-template-columns:repeat(3, 1fr);}
+  @media (min-width:480px){ .grid{grid-template-columns:repeat(4, 1fr);} }
+  @media (min-width:768px){ .grid{grid-template-columns:repeat(6, 1fr);} }
+  @media (min-width:1024px){ .grid{grid-template-columns:repeat(8, 1fr);} }
+
+  .card{
+    background:var(--bg); border:1px solid var(--hair);
+    border-radius:12px; overflow:hidden; cursor:pointer;
+    display:flex; flex-direction:column;
   }
 
-  /* GRID */
-  main{padding:10px 10px 90px 10px;}
-  .grid{
-    display:grid;gap:12px;
-    grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
-  }
-  @media (min-width:768px){
-    .grid{grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));}
-  }
-  .card{
-    background:var(--bg);border:1px solid var(--hair);
-    border-radius:12px;overflow:hidden;cursor:pointer;
-    display:flex;flex-direction:column;
-  }
+  /* Square cover without aspect-ratio: padding-top hack */
+  .artWrap{position:relative; width:100%; padding-top:100%; background:#ddd; border-bottom:1px solid var(--hair);}
   .art{
-    width:100%;aspect-ratio:1/1;object-fit:cover;background:#ddd;
-    border-bottom:1px solid var(--hair);
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    object-fit:cover; background:#ddd;
   }
-  .meta{padding:8px 10px;min-height:56px}
-  .t{
-    font-weight:700;font-size:14px;line-height:1.25;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .s{
-    margin-top:2px;font-size:12px;color:var(--muted);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
+  .meta{padding:8px 10px; min-height:56px}
+  .t{font-weight:700;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .s{margin-top:2px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* LIST layout (Apple Music–style rows) */
+  .list{list-style:none; padding:0; margin:0;}
+  .row{display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid var(--hair); cursor:pointer;}
+  .thumbWrap{position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden; background:#ddd; margin-right:12px;}
+  .thumb{position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; background:#ddd;}
+  .metaL{min-width:0;}
+  .tL{font-weight:700;font-size:16px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sL{margin-top:2px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
   /* Bottom toolbar */
   .toolbar{
+    position:fixed; left:0; right:0; bottom:0; background:var(--bg);
+    border-top:1px solid var(--hair); display:flex; gap:8px;
+    align-items:center; justify-content:space-between; padding:10px 12px;
+  }
+  .group{display:flex; gap:8px; align-items:center}
+  .btn{
+    border:1px solid var(--hair); background:var(--tile); color:var(--text);
+    padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer;
+  }
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .accent{border-color:var(--red); color:#fff; background:var(--red)}
+
+  /* Details sheet (avoid 'inset' shorthand for old Safari) */
+  .modal{
+    position:fixed; left:0; right:0; top:0; bottom:0;
+    background:rgba(0,0,0,.35); display:flex; align-items:flex-end; justify-content:center;
+  }
+  .modal.hidden{display:none}
+  .sheet{
+    width:100%; max-width:720px; background:var(--bg); border-radius:16px 16px 0 0;
+    border:1px solid var(--hair); border-bottom:0; max-height:90vh; overflow:auto;
+    box-shadow:0 -10px 30px rgba(0,0,0,.15);
+  }
+  .drag{width:48px;height:5px;border-radius:999px;background:var(--hair);margin:8px auto}
+  .hero{width:100%; max-height:360px; object-fit:cover; border-bottom:1px solid var(--hair); background:#ddd}
+  #md-body{padding:14px 16px 18px 16px}
+  #md-body h2{margin:4px 0 6px 0;font-size:20px}
+  .meta-row{color:var(--muted);margin:4px 0}
+  .section{margin:12px 0 6px 0;font-weight:700}
+  .tracks{margin:6px 0 0 0;padding-left:18px}
+  .tracks li{margin:3px 0}
+  .link{display:inline-block;margin-top:10px;padding:8px 12px;border-radius:10px;border:1px solid var(--hair);background:var(--tile);text-decoration:none;color:var(--text);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">Library</div>
+  <div class="search">
+    <span class="mag">🔎</span>
+    <input id="q" placeholder="Artists, albums, catalog #, year" autocomplete="off">
+  </div>
+  <div class="info">
+    <span id="count">0 items</span>
+    <span id="page">Page 1</span>
+  </div>
+</header>
+
+<main>
+  <!-- GRID container -->
+  <div id="grid" class="grid" aria-live="polite" style="display:block;"></div>
+  <!-- LIST container -->
+  <ul id="list" class="list" aria-live="polite" style="display:none;"></ul>
+</main>
+
+<!-- Bottom toolbar -->
+<div class="toolbar">
+  <div class="group">
+    <button id="prev" class="btn">◀︎ Prev</button>
+    <button id="next" class="btn">Next ▶︎</button>
+    <button id="random" class="btn accent">🎲 Random</button>
+  </div>
+  <div class="group">
+    <button id="toggle" class="btn">List View</button>
+  </div>
+</div>
+
+<!-- Details sheet -->
+<div id="modal" class="modal hidden" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="md-title">
+    <div class="drag"></div>
+    <img id="md-hero" class="hero" alt="">
+    <div id="md-body"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* ------------- CONFIG ------------- */
+  var API  = "https://disco.slimjim316.workers.dev";  // your Worker URL
+  var USER = "slimjim316";
+
+  /* ------------- STATE -------------- */
+  var page=1, per=100, folder=0, cache=[], total=0, pages=1, q="", view="grid"; // view: "grid" | "list"
+
+  /* ------------- BASIC ERROR HOOK ---- */
+  window.onerror = function(msg){ try{ alert(String(msg)); }catch(e){} };
+
+  /* ------------- XHR ----------------- */
+  function get(url, cb){
+    var x=new XMLHttpRequest();
+    x.open("GET", url, true);
+    x.onreadystatechange=function(){
+      if(x.readyState===4){
+        if(x.status>=200 && x.status<300){
+          try{ cb(null, JSON.parse(x.responseText)); }
+          catch(e){ cb(new Error("Bad JSON from API")); }
+        }else{
+          if(x.status===0) cb(new Error("Network/CORS error. Check API URL and no trailing slash."));
+          else cb(new Error(x.status+" "+(x.responseText||x.statusText)));
+        }
+      }
+    };
+    x.onerror=function(){ cb(new Error("Request failed (possible CORS or offline).")); };
+    x.send();
+  }
+
+  /* ------------- LOADERS ------------- */
+  function loadPage(p, cb){
+    page=p;
+    document.getElementById("page").textContent="Page "+page;
+    var url = API + "/api/collection?username=" + encodeURIComponent(USER) +
+              "&folder_id=" + folder + "&per_page=" + per + "&page=" + page +
+              "&sort=artist&sort_order=asc";
+    get(url, function(err, data){
+      if(err){ alert(err.message); return; }
+      total = data.pagination ? data.pagination.items : 0;
+      pages = data.pagination ? data.pagination.pages : 1;
+      cache = (data.releases||[]).map(function(r){
+        var rel = r.basic_information||{};
+        return {
+          id: rel.id,
+          title: rel.title||"",
+          artist: (rel.artists && rel.artists[0] && rel.artists[0].name)||"",
+          year: rel.year||"",
+          catno: rel.labels && rel.labels[0] ? rel.labels[0].catno : "",
+          thumb: rel.cover_image || (rel.thumb||"")
+        };
+      });
+      cache.sort(function(a,b){
+        var A=(a.artist||"").toLowerCase(), B=(b.artist||"").toLowerCase();
+        if(A<B) return -1; if(A>B) return 1; return 0;
+      });
+      render();
+      if(typeof cb==="function") cb();
+    });
+  }
+
+  /* ------------- FILTER -------------- */
+  function matches(it, needle){
+    if(!needle) return true;
+    needle = needle.toLowerCase();
+    return it.title.toLowerCase().indexOf(needle)>-1 ||
+           it.artist.toLowerCase().indexOf(needle)>-1 ||
+           String(it.year).indexOf(needle)>-1 ||
+           String(it.catno).toLowerCase().indexOf(needle)>-1;
+  }
+
+  /* ------------- RENDER -------------- */
+  function render(){
+    var grid = document.getElementById("grid");
+    var list = document.getElementById("list");
+    grid.innerHTML = ""; list.innerHTML="";
+
+    var filtered = [];
+    for(var i=0;i<cache.length;i++){ if(matches(cache[i], q)) filtered.push(cache[i]); }
+    document.getElementById("count").textContent = filtered.length+" of "+cache.length+" (total "+total+")";
+
+    if(view==="grid"){
+      grid.style.display="block"; list.style.display="none";
+      for(var j=0;j<filtered.length;j++){
+        var it = filtered[j];
+        var card = document.createElement("div"); card.className="card";
+        var wrap = document.createElement("div"); wrap.className="artWrap";
+        var img  = document.createElement("img"); img.className="art"; img.alt=""; img.src = it.thumb || "";
+        wrap.appendChild(img);
+        var meta = document.createElement("div"); meta.className="meta";
+        var t = document.createElement("div"); t.className="t"; t.textContent = it.title;
+        var s = document.createElement("div"); s.className="s"; s.textContent = it.artist + (it.year?" • "+it.year:"");
+        meta.appendChild(t); meta.appendChild(s);
+        card.appendChild(wrap); card.appendChild(meta);
+        card.addEventListener("click", (function(id){ return function(){ showDetailsById(id); };})(it.id));
+        grid.appendChild(card);
+      }
+    } else {
+      grid.style.display="none"; list.style.display="block";
+      for(var k=0;k<filtered.length;k++){
+        var it2 = filtered[k];
+        var li = document.createElement("li"); li.className="row";
+        var tw = document.createElement("div"); tw.className="thumbWrap";
+        var th = document.createElement("img"); th.className="thumb"; th.alt=""; th.src = it2.thumb || "";
+        tw.appendChild(th);
+        var metaL = document.createElement("div"); metaL.className="metaL";
+        var tL = document.createElement("div"); tL.className="tL"; tL.textContent = it2.title;
+        var sL = document.createElement("div"); sL.className="sL"; sL.textContent = it2.artist + (it2.year?" • "+it2.year:"") + (it2.catno?" • "+it2.catno:"");
+        metaL.appendChild(tL); metaL.appendChild(sL);
+        li.appendChild(tw); li.appendChild(metaL);
+        li.addEventListener("click", (function(id){ return function(){ showDetailsById(id); };})(it2.id));
+        list.appendChild(li);
+      }
+    }
+
+    document.getElementById("prev").disabled = page<=1;
+    document.getElementById("next").disabled = page>=pages;
+    document.getElementById("toggle").textContent = (view==="grid") ? "List View" : "Grid View";
+  }
+
+  /* ------------- DETAILS ------------- */
+  function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);}); }
+  function openModal(){ var m=document.getElementById("modal"); m.className="modal"; m.setAttribute("aria-hidden","false"); }
+  function closeModal(){ var m=document.getElementById("modal"); m.className="modal hidden"; m.setAttribute("aria-hidden","true");
+    document.getElementById("md-body").innerHTML=""; document.getElementById("md-hero").src=""; }
+  function showDetails(release){
+    var body=document.getElementById("md-body"), hero=document.getElementById("md-hero");
+    var title=release.title||"", artists=(release.artists&&release.artists[0]?release.artists[0].name:"");
+    var year=release.year||"", lbl=(release.labels&&release.labels[0]?release.labels[0].name:"");
+    var cat=(release.labels&&release.labels[0]?release.labels[0].catno:""), country=release.country||"";
+    var fmts=(release.formats&&release.formats[0]?release.formats[0].name:"");
+    var genres=(release.genres?release.genres.join(", "):"");
+    var styles=(release.styles?release.styles.join(", "):"");
+    var notes=release.notes||"";
+    var art=(release.images&&release.images[0]?release.images[0].uri:"");
+    hero.src = art || "";
+
+    var html='';
+    html+='<h2 id="md-title">'+escapeHtml(title)+'</h2>';
+    html+='<div class="meta-row">'+escapeHtml(artists)+(year?" • "+year:"")+'</div>';
+    html+='<div class="meta-row">'+(lbl?escapeHtml(lbl):"")+(cat?" • "+escapeHtml(cat):"")+(country?" • "+escapeHtml(country):"")+'</div>';
+    if(fmts)   html+='<div class="meta-row">Format: '+escapeHtml(fmts)+'</div>';
+    if(genres) html+='<div class="meta-row">Genres: '+escapeHtml(genres)+'</div>';
+    if(styles) html+='<div class="meta-row">Styles: '+escapeHtml(styles)+'</div>';
+    if(release.tracklist&&release.tracklist.length){
+      html+='<div class="section">Tracklist</div><ol class="tracks">';
+      for(var i=0;i<release.tracklist.length;i++){
+        var t=release.tracklist[i], nm=t.title||"", pos=t.position||"", dur=t.duration||"";
+        html+='<li>'+escapeHtml((pos?pos+" – ":"")+nm+(dur?" ("+dur+")":""))+'</li>';
+      }
+      html+='</ol>';
+    }
+    if(notes){ html+='<div class="section">Notes</div><div style="white-space:pre-wrap">'+escapeHtml(notes)+'</div>'; }
+    if(release.uri){ html+='<a class="link" target="_blank" rel="noopener" href="'+release.uri+'">View on Discogs</a>'; }
+    body.innerHTML = html; openModal();
+  }
+  function showDetailsById(id){
+    fetchRelease(id, function(err, data){
+      if(err){ alert("Could not load details: " + err.message); return; }
+      showDetails(data);
+    });
+  }
+
+  /* ------------- RANDOM -------------- */
+  function openRandom(){
+    if(!total){ alert("Collection not loaded yet."); return; }
+    var idx=Math.floor(Math.random()*total)+1;      // 1..total
+    var targetPage=Math.ceil(idx/per);
+    var indexOnPage=(idx-1)%per;
+    if(page===targetPage && cache[indexOnPage]){
+      showDetailsById(cache[indexOnPage].id); return;
+    }
+    loadPage(targetPage, function(){
+      if(cache[indexOnPage]) showDetailsById(cache[indexOnPage].id);
+      else alert("Random pick failed");
+    });
+  }
+
+  /* ------------- EVENTS -------------- */
+  document.getElementById("q").addEventListener("input", function(e){ q=e.target.value; render(); });
+  document.getElementById("prev").addEventListener("click", function(){ if(page>1) loadPage(page-1); });
+  document.getElementById("next").addEventListener("click", function(){ if(page<pages) loadPage(page+1); });
+  document.getElementById("random").addEventListener("click", openRandom);
+
+  document.getElementById("toggle").addEventListener("click", function(){
+    view = (view==="grid") ? "list" : "grid";
+    render();
+  });
+
+  document.getElementById("modal").addEventListener("click", function(e){
+    if(e.target && e.target.id==="modal") closeModal();
+  });
+
+  /* ------------- INIT ---------------- */
+  loadPage(1);
+})();
+</script>
+</body>
+</html>
