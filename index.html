@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vinyl Shelf</title>
+<title>DiscoApp · Vinyl Shelf</title>
 <style>
   body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#111;color:#eee}
   header{position:sticky;top:0;background:#111;padding:12px;border-bottom:1px solid #333;z-index:2}
@@ -11,7 +11,7 @@
   .bar{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap}
   .pill{padding:6px 10px;border:1px solid #333;border-radius:999px;background:#1a1a1a}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;padding:12px}
-  .card{background:#181818;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden}
+  .card{background:#181818;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;cursor:pointer}
   .cover{width:100%;height:120px;object-fit:cover;background:#222}
   .meta{padding:8px}
   .t{font-weight:600;font-size:13px;line-height:1.2}
@@ -19,6 +19,19 @@
   footer{padding:12px;opacity:.7}
   button{cursor:pointer}
   button:disabled{opacity:.5;cursor:not-allowed}
+
+  /* Modal / details */
+  .modal{position:fixed;left:0;right:0;top:0;bottom:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px}
+  .modal.hidden{display:none}
+  .sheet{position:relative;background:#121212;border:1px solid #2a2a2a;border-radius:14px;max-width:720px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  #md-body{padding:16px}
+  #md-body h2{margin:0 0 6px 0;font-size:18px}
+  .meta-row{opacity:.9;margin:6px 0}
+  .tracks{margin:10px 0;padding-left:16px}
+  .tracks li{margin:4px 0}
+  .x{position:absolute;right:10px;top:6px;background:transparent;border:0;color:#ddd;font-size:28px;line-height:1;cursor:pointer}
+  .link{display:inline-block;margin:8px 0 12px 0;padding:6px 10px;border:1px solid #333;border-radius:999px;text-decoration:none;color:#eee;background:#1a1a1a}
+  .link:active{transform:scale(0.98)}
 </style>
 </head>
 <body>
@@ -29,20 +42,30 @@
     <span id="page" class="pill">Page 1</span>
     <button id="prev" class="pill">◀ Prev</button>
     <button id="next" class="pill">Next ▶</button>
+    <button id="random" class="pill">🎲 Random</button>
     <span id="value" class="pill">Value: —</span>
   </div>
 </header>
 
 <main id="grid" class="grid" aria-live="polite"></main>
+
+<!-- Details modal -->
+<div id="modal" class="modal hidden" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="md-title">
+    <button id="md-close" class="x" aria-label="Close details">&times;</button>
+    <div id="md-body"></div>
+  </div>
+</div>
+
 <footer id="foot"></footer>
 
 <script>
 (function(){
-  // 👇 EDIT THIS ONE LINE ONLY — paste your Cloudflare Worker URL between the quotes
-  var API = "https://disco.slimjim316.workers.dev";         
+  // 👇 Paste your Cloudflare Worker URL (no trailing slash)
+  var API = "YOUR_WORKER_URL";
 
-  // Username is pre-filled
-  var USER = "slimjim316";             
+  // Discogs username is pre-filled
+  var USER = "slimjim316";
 
   var page = 1, per = 100, folder = 0, cache = [], total = 0, pages = 1, q = "";
 
@@ -51,10 +74,16 @@
     x.open("GET", url, true);
     x.onreadystatechange = function(){
       if (x.readyState === 4){
-        if (x.status >= 200 && x.status < 300) cb(null, JSON.parse(x.responseText));
-        else cb(new Error(x.status + " " + x.responseText));
+        if (x.status >= 200 && x.status < 300) {
+          try { cb(null, JSON.parse(x.responseText)); }
+          catch(e){ cb(new Error("Bad JSON from API")); }
+        } else {
+          if (x.status === 0) cb(new Error("Network/CORS error. Check API URL (https) and no trailing slash."));
+          else cb(new Error(x.status + " " + (x.responseText || x.statusText)));
+        }
       }
     };
+    x.onerror = function(){ cb(new Error("Request failed (possible CORS or offline).")); };
     x.send();
   }
 
@@ -68,7 +97,8 @@
     });
   }
 
-  function loadPage(p){
+  // Allow optional callback after render
+  function loadPage(p, cb){
     page = p;
     document.getElementById("page").textContent = "Page " + page;
     get(API + "/api/collection?username=" + encodeURIComponent(USER) +
@@ -89,6 +119,7 @@
           };
         });
         render();
+        if (typeof cb === "function") cb();
       });
   }
 
@@ -119,6 +150,12 @@
       var a = document.createElement("div"); a.className = "a"; a.textContent = it.artist + (it.year ? " • " + it.year : "");
       m.appendChild(t); m.appendChild(a);
       card.appendChild(img); card.appendChild(m);
+
+      // Open details on click (ES5-safe closure)
+      card.addEventListener("click", (function(id){
+        return function(){ showDetailsById(id); };
+      })(it.id));
+
       grid.appendChild(card);
     }
     document.getElementById("prev").disabled = page<=1;
@@ -126,10 +163,119 @@
     document.getElementById("foot").textContent = "Page " + page + " of " + pages;
   }
 
+  // ---------- Details / modal ----------
+  function fetchRelease(id, cb){
+    get(API + "/api/release?id=" + encodeURIComponent(id), function(err, data){
+      if (err) { cb(err); return; }
+      cb(null, data);
+    });
+  }
+
+  function openModal(){ 
+    var m = document.getElementById("modal");
+    m.className = "modal";
+    m.setAttribute("aria-hidden", "false");
+  }
+  function closeModal(){
+    var m = document.getElementById("modal");
+    m.className = "modal hidden";
+    m.setAttribute("aria-hidden", "true");
+    document.getElementById("md-body").innerHTML = "";
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g,function(m){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
+    });
+  }
+
+  function showDetails(release){
+    var b = document.getElementById("md-body");
+    var title = (release.title || "");
+    var artists = (release.artists && release.artists.length ? release.artists[0].name : "");
+    var year = release.year || "";
+    var lbl = (release.labels && release.labels.length ? release.labels[0].name : "");
+    var cat = (release.labels && release.labels.length ? release.labels[0].catno : "");
+    var country = release.country || "";
+    var fmts = (release.formats && release.formats.length ? release.formats[0].name : "");
+    var genres = (release.genres ? release.genres.join(", ") : "");
+    var styles = (release.styles ? release.styles.join(", ") : "");
+    var notes = release.notes || "";
+    var art = (release.images && release.images.length ? release.images[0].uri : "");
+
+    var html = "";
+    if (art) html += '<img alt="" src="'+art+'" style="width:100%;max-height:320px;object-fit:cover;border-bottom:1px solid #222">';
+    html += '<div style="padding:12px 16px 4px 16px">';
+    html += '<h2 id="md-title">'+escapeHtml(title)+'</h2>';
+    html += '<div class="meta-row">'+escapeHtml(artists)+(year? " • "+year : "")+'</div>';
+    html += '<div class="meta-row">'+(lbl? escapeHtml(lbl) : "")+(cat? " • "+escapeHtml(cat):"")+(country? " • "+escapeHtml(country):"")+'</div>';
+    if (fmts) html += '<div class="meta-row">Format: '+escapeHtml(fmts)+'</div>';
+    if (genres) html += '<div class="meta-row">Genres: '+escapeHtml(genres)+'</div>';
+    if (styles) html += '<div class="meta-row">Styles: '+escapeHtml(styles)+'</div>';
+
+    if (release.tracklist && release.tracklist.length){
+      html += '<h3 style="margin:12px 0 4px 0">Tracklist</h3><ol class="tracks">';
+      for (var i=0;i<release.tracklist.length;i++){
+        var t = release.tracklist[i];
+        var nm = t.title || "";
+        var pos = t.position || "";
+        var dur = t.duration || "";
+        html += '<li>'+escapeHtml((pos? pos+" – " : "")+nm+(dur? " ("+dur+")": ""))+'</li>';
+      }
+      html += '</ol>';
+    }
+    if (notes){
+      html += '<h3 style="margin:12px 0 4px 0">Notes</h3>';
+      html += '<div style="white-space:pre-wrap">'+escapeHtml(notes)+'</div>';
+    }
+    if (release.uri){
+      html += '<a class="link" target="_blank" rel="noopener" href="'+release.uri+'">View on Discogs</a>';
+    }
+    html += '</div>';
+
+    b.innerHTML = html;
+    openModal();
+  }
+
+  function showDetailsById(id){
+    fetchRelease(id, function(err, data){
+      if (err){ alert("Could not load details: " + err.message); return; }
+      showDetails(data);
+    });
+  }
+
+  // ---------- Randomiser ----------
+  function openRandom(){
+    if (!total) { alert("Collection not loaded yet."); return; }
+    var idx = Math.floor(Math.random() * total) + 1; // 1..total
+    var targetPage = Math.ceil(idx / per);
+    var indexOnPage = (idx - 1) % per;
+
+    if (page === targetPage && cache[indexOnPage]){
+      showDetailsById(cache[indexOnPage].id);
+      return;
+    }
+    loadPage(targetPage, function(){
+      if (cache[indexOnPage]) showDetailsById(cache[indexOnPage].id);
+      else alert("Could not pick a random item on that page.");
+    });
+  }
+
+  // ---------- Events ----------
   document.getElementById("q").addEventListener("input", function(e){ q = e.target.value; render(); });
   document.getElementById("prev").addEventListener("click", function(){ if (page>1) loadPage(page-1); });
   document.getElementById("next").addEventListener("click", function(){ if (page<pages) loadPage(page+1); });
+  document.getElementById("random").addEventListener("click", openRandom);
 
+  document.getElementById("md-close").addEventListener("click", closeModal);
+  document.getElementById("modal").addEventListener("click", function(e){
+    if (e.target && e.target.id === "modal") closeModal(); // click backdrop to close
+  });
+  document.addEventListener("keydown", function(e){
+    if (e.keyCode === 27) closeModal(); // ESC
+  });
+
+  // ---------- Init ----------
   loadValue();
   loadPage(1);
 })();
