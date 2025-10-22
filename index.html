@@ -141,31 +141,58 @@
   }
   function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
 
-  function fetchMaster(masterId, cb){
+  function parseYearFromMaster(data){
+    if(!data) return null;
+    // Prefer "year"; fall back to ISO "released" or "released_date"
+    if(typeof data.year === "number") return data.year;
+    if(typeof data.year === "string" && /^\d{4}$/.test(data.year)) return +data.year;
+    var r = data.released || data.released_date || "";
+    var m = /^(\d{4})/.exec(r);
+    return m ? +m[1] : null;
+  }
+
+  // Try multiple endpoints to get master info: worker route(s) first, then Discogs direct if allowed.
+  function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
     if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
     if(MASTER_FETCHED[masterId]){ cb(null,null); return; }
     MASTER_FETCHED[masterId]=true;
-    // If this Worker route isn’t present, UI still renders; we just won’t get master years.
-    get(API + "/api/master?id=" + encodeURIComponent(masterId), function(err, data){
-      if(!err && data){
-        var y = data.year || data.released_year || null;
-        if(y!=null) MASTER_YEAR[masterId]=y;
-      }
-      cb(null, MASTER_YEAR[masterId] || null);
-    });
+
+    var candidates = [
+      API + "/api/master?id=" + encodeURIComponent(masterId),
+      API + "/api/masters/" + encodeURIComponent(masterId)
+    ];
+    if(masterUrl){ candidates.push(masterUrl); } // e.g. https://api.discogs.com/masters/80164
+
+    function tryNext(i){
+      if(i>=candidates.length){ cb(null, null); return; }
+      get(candidates[i], function(err, data){
+        var y = !err ? parseYearFromMaster(data) : null;
+        if(y!=null){
+          MASTER_YEAR[masterId]=y;
+          cb(null, y);
+        }else{
+          tryNext(i+1);
+        }
+      });
+    }
+    tryNext(0);
   }
 
   function fillMasterYears(items, onDone){
     var todo=[], seen={};
     for(var i=0;i<items.length;i++){
-      var m=items[i].master_id;
-      if(m && !MASTER_YEAR.hasOwnProperty(m) && !MASTER_FETCHED[m] && !seen[m]){ seen[m]=1; todo.push(m); }
+      var it=items[i], m=it.master_id;
+      if(m && !MASTER_YEAR.hasOwnProperty(m) && !MASTER_FETCHED[m] && !seen[m]){
+        seen[m]=1; todo.push({id:m, url:it.master_url});
+      }
     }
     if(!todo.length){ if(onDone) onDone(); return; }
     var left=todo.length;
     for(var j=0;j<todo.length;j++){
-      (function(mid){ fetchMaster(mid, function(){ left--; if(left===0 && onDone) onDone(); }); })(todo[j]);
+      (function(mid, murl){
+        fetchMaster(mid, murl, function(){ left--; if(left===0 && onDone) onDone(); });
+      })(todo[j].id, todo[j].url);
     }
   }
 
@@ -239,6 +266,7 @@
           isVarious: isVarious(firstArtist),
           year: (typeof info.year === "number" || typeof info.year === "string") ? info.year : null,
           master_id: mid,
+          master_url: info.master_url || null,
           master_year: (mid && MASTER_YEAR[mid]!=null) ? MASTER_YEAR[mid] : null,
           catno: firstLbl.catno || info.catno || "",
           thumb: info.cover_image || info.thumb || ""
@@ -251,14 +279,18 @@
 
       // Enrich with master years, then re-sort/re-render
       fillMasterYears(cache, function(){
-        for(var i=0;i<cache.length;i++){
+        var changed=false, i;
+        for(i=0;i<cache.length;i++){
           var it=cache[i];
           if(it.master_id && it.master_year==null && MASTER_YEAR.hasOwnProperty(it.master_id)){
             it.master_year = MASTER_YEAR[it.master_id];
+            changed=true;
           }
         }
-        cache.sort(cmpItems);
-        render();
+        if(changed){
+          cache.sort(cmpItems);
+          render();
+        }
         if(typeof cb==="function") cb();
       });
     });
@@ -293,7 +325,8 @@
         wrap.appendChild(img);
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
-        var s=document.createElement("div"); s.className="s"; s.textContent=it.artist+(it.year?" • "+it.year:"");
+        var rightYear = (it.master_year!=null)?it.master_year:it.year;
+        var s=document.createElement("div"); s.className="s"; s.textContent=it.artist+(rightYear?" • "+rightYear:"");
         meta.appendChild(t); meta.appendChild(s);
         inner.appendChild(wrap); inner.appendChild(meta);
         card.appendChild(inner);
@@ -310,7 +343,8 @@
         tw.appendChild(th);
         var metaL=document.createElement("div"); metaL.className="metaL";
         var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
-        var sL=document.createElement("div"); sL.className="sL"; sL.textContent=it2.artist+(it2.year?" • "+it2.year:"")+(it2.catno?" • "+it2.catno:"");
+        var rightYear2=(it2.master_year!=null)?it2.master_year:it2.year;
+        var sL=document.createElement("div"); sL.className="sL"; sL.textContent=it2.artist+(rightYear2?" • "+rightYear2:"")+(it2.catno?" • "+it2.catno:"");
         metaL.appendChild(tL); metaL.appendChild(sL);
         li.appendChild(tw); li.appendChild(metaL);
         li.addEventListener("click",(function(id){return function(){showDetailsById(id);};})(it2.id));
