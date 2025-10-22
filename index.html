@@ -133,6 +133,8 @@
   /* ---------- Master-year cache & sort helpers ---------- */
   var MASTER_YEAR = {};    // { master_id: year }
   var MASTER_FETCHED = {}; // { master_id: true }
+  var CONCURRENCY = 6;     // polite to the API & iOS 12
+  var inflight = 0, queue = [];
 
   function normalizeArtist(name){
     if(!name) return "";
@@ -143,7 +145,6 @@
 
   function parseYearFromMaster(data){
     if(!data) return null;
-    // Prefer "year"; fall back to ISO "released" or "released_date"
     if(typeof data.year === "number") return data.year;
     if(typeof data.year === "string" && /^\d{4}$/.test(data.year)) return +data.year;
     var r = data.released || data.released_date || "";
@@ -151,48 +152,57 @@
     return m ? +m[1] : null;
   }
 
-  // Try multiple endpoints to get master info: worker route(s) first, then Discogs direct if allowed.
+  function runQueue(){
+    while(inflight<CONCURRENCY && queue.length){
+      var job = queue.shift();
+      inflight++;
+      job(function(){ inflight--; runQueue(); });
+    }
+  }
+
+  // Fetch the Discogs master doc, preferring the provided master_url
   function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
     if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
     if(MASTER_FETCHED[masterId]){ cb(null,null); return; }
     MASTER_FETCHED[masterId]=true;
 
-    var candidates = [
-      API + "/api/master?id=" + encodeURIComponent(masterId),
-      API + "/api/masters/" + encodeURIComponent(masterId)
-    ];
-    if(masterUrl){ candidates.push(masterUrl); } // e.g. https://api.discogs.com/masters/80164
+    var urls = [];
+    if(masterUrl) urls.push(masterUrl);
+    urls.push("https://api.discogs.com/masters/" + encodeURIComponent(masterId));
 
-    function tryNext(i){
-      if(i>=candidates.length){ cb(null, null); return; }
-      get(candidates[i], function(err, data){
-        var y = !err ? parseYearFromMaster(data) : null;
-        if(y!=null){
-          MASTER_YEAR[masterId]=y;
-          cb(null, y);
-        }else{
-          tryNext(i+1);
-        }
-      });
-    }
-    tryNext(0);
+    queue.push(function(done){
+      (function tryAt(i){
+        if(i>=urls.length){ done(); cb(null,null); return; }
+        get(urls[i], function(err, data){
+          var y = !err ? parseYearFromMaster(data) : null;
+          if(y!=null){
+            MASTER_YEAR[masterId]=y;
+            done(); cb(null, y);
+          }else{
+            tryAt(i+1);
+          }
+        });
+      })(0);
+    });
+    runQueue();
   }
 
   function fillMasterYears(items, onDone){
-    var todo=[], seen={};
+    var wanted=[], seen={};
     for(var i=0;i<items.length;i++){
       var it=items[i], m=it.master_id;
       if(m && !MASTER_YEAR.hasOwnProperty(m) && !MASTER_FETCHED[m] && !seen[m]){
-        seen[m]=1; todo.push({id:m, url:it.master_url});
+        seen[m]=1; wanted.push({id:m, url:it.master_url});
       }
     }
-    if(!todo.length){ if(onDone) onDone(); return; }
-    var left=todo.length;
-    for(var j=0;j<todo.length;j++){
+    if(!wanted.length){ if(onDone) onDone(); return; }
+
+    var left=wanted.length;
+    for(var j=0;j<wanted.length;j++){
       (function(mid, murl){
         fetchMaster(mid, murl, function(){ left--; if(left===0 && onDone) onDone(); });
-      })(todo[j].id, todo[j].url);
+      })(wanted[j].id, wanted[j].url);
     }
   }
 
@@ -235,7 +245,7 @@
     get(url, function(err, data){
       if(err){ alert(err.message); return; }
 
-      // Prefer Discogs 'releases'; fall back if Worker ever changes shape
+      // Prefer Discogs 'releases'; fallback if Worker changes shape
       var arr = [];
       if(data){
         if(isArray(data.releases))      arr = data.releases;
@@ -244,11 +254,9 @@
         else if(isArray(data))           arr = data;
       }
 
-      // Pagination info
       total = (data && data.pagination && data.pagination.items) ? data.pagination.items : (arr.length||0);
       pages = (data && data.pagination && data.pagination.pages) ? data.pagination.pages : (total ? Math.ceil(total/per) : 1);
 
-      // Map API shape → internal items
       cache = arr.map(function(r){
         var info = r && r.basic_information ? r.basic_information : r || {};
         var artistsArr = info.artists || [];
@@ -266,18 +274,18 @@
           isVarious: isVarious(firstArtist),
           year: (typeof info.year === "number" || typeof info.year === "string") ? info.year : null,
           master_id: mid,
-          master_url: info.master_url || null,
+          master_url: info.master_url || (mid ? ("https://api.discogs.com/masters/"+mid) : null),
           master_year: (mid && MASTER_YEAR[mid]!=null) ? MASTER_YEAR[mid] : null,
           catno: firstLbl.catno || info.catno || "",
           thumb: info.cover_image || info.thumb || ""
         };
       });
 
-      // Render immediately with whatever we have
+      // Initial render (uses whatever master years we already have)
       cache.sort(cmpItems);
       render();
 
-      // Enrich with master years, then re-sort/re-render
+      // Fetch missing master years → re-sort → render
       fillMasterYears(cache, function(){
         var changed=false, i;
         for(i=0;i<cache.length;i++){
