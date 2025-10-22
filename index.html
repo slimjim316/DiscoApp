@@ -334,7 +334,13 @@
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
         var rightYear = (it.master_year!=null)?it.master_year:it.year;
-        var s=document.createElement("div"); s.className="s"; s.textContent=it.artist+(rightYear?" • "+rightYear:"");
+        var releaseYear = it.year;
+var masterYear  = it.master_year;
+var s=document.createElement("div"); s.className="s";
+var parts=[it.artist];
+if(releaseYear!=null && releaseYear!=="") parts.push(releaseYear);
+if(masterYear!=null && masterYear!=="")   parts.push(masterYear);
+s.textContent = parts.join(" • ");
         meta.appendChild(t); meta.appendChild(s);
         inner.appendChild(wrap); inner.appendChild(meta);
         card.appendChild(inner);
@@ -438,3 +444,4 @@
 </script>
 </body>
 </html>
+
