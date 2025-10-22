@@ -107,6 +107,7 @@
   function get(url, cb){
     var x=new XMLHttpRequest();
     x.open("GET", url, true);
+    try { x.setRequestHeader('Accept','application/json'); } catch(e){}
     x.onreadystatechange=function(){
       if(x.readyState===4){
         if(x.status>=200 && x.status<300){
@@ -115,11 +116,11 @@
           catch(e){ err = new Error("Bad JSON from API"); }
           cb(err, json);
         }else{
-          cb(new Error(x.status+" "+(x.responseText||x.statusText||"Request failed")));
+          cb(new Error("HTTP "+x.status+" on "+url));
         }
       }
     };
-    x.onerror=function(){ cb(new Error("Network error / CORS")); };
+    x.onerror=function(){ cb(new Error("Network/CORS error on "+url)); };
     x.send();
   }
 
@@ -133,8 +134,7 @@
   /* ---------- Master-year cache & sort helpers ---------- */
   var MASTER_YEAR = {};    // { master_id: year }
   var MASTER_FETCHED = {}; // { master_id: true }
-  var CONCURRENCY = 6;     // polite to the API & iOS 12
-  var inflight = 0, queue = [];
+  var CONCURRENCY = 6, inflight = 0, queue = [];
 
   function normalizeArtist(name){
     if(!name) return "";
@@ -160,7 +160,7 @@
     }
   }
 
-  // Fetch the Discogs master doc, preferring the provided master_url
+  // Fetch the Discogs master doc; prefer provided master_url, fall back to /masters/{id}
   function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
     if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
@@ -173,13 +173,22 @@
 
     queue.push(function(done){
       (function tryAt(i){
-        if(i>=urls.length){ done(); cb(null,null); return; }
-        get(urls[i], function(err, data){
-          var y = !err ? parseYearFromMaster(data) : null;
+        if(i>=urls.length){ console.warn("[master] all failed for id", masterId); done(); cb(null,null); return; }
+        var u = urls[i];
+        console.log("[master] GET", u);
+        get(u, function(err, data){
+          if(err){
+            console.warn("[master] ERR", u, String(err && err.message || err));
+            tryAt(i+1);
+            return;
+          }
+          var y = parseYearFromMaster(data);
+          console.log("[master] OK", u, "year=", y);
           if(y!=null){
             MASTER_YEAR[masterId]=y;
             done(); cb(null, y);
           }else{
+            console.warn("[master] No year in response", u, data);
             tryAt(i+1);
           }
         });
@@ -333,14 +342,13 @@
         wrap.appendChild(img);
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
-        var rightYear = (it.master_year!=null)?it.master_year:it.year;
-        var releaseYear = it.year;
-var masterYear  = it.master_year;
-var s=document.createElement("div"); s.className="s";
-var parts=[it.artist];
-if(releaseYear!=null && releaseYear!=="") parts.push(releaseYear);
-if(masterYear!=null && masterYear!=="")   parts.push(masterYear);
-s.textContent = parts.join(" • ");
+
+        // ---- Show Artist • ReleaseYear • MasterYear (debug visible) ----
+        var parts=[it.artist];
+        if(it.year!=null && it.year!=="") parts.push(it.year);
+        if(it.master_year!=null && it.master_year!=="") parts.push(it.master_year);
+        var s=document.createElement("div"); s.className="s"; s.textContent=parts.join(" • ");
+
         meta.appendChild(t); meta.appendChild(s);
         inner.appendChild(wrap); inner.appendChild(meta);
         card.appendChild(inner);
@@ -357,8 +365,14 @@ s.textContent = parts.join(" • ");
         tw.appendChild(th);
         var metaL=document.createElement("div"); metaL.className="metaL";
         var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
-        var rightYear2=(it2.master_year!=null)?it2.master_year:it2.year;
-        var sL=document.createElement("div"); sL.className="sL"; sL.textContent=it2.artist+(rightYear2?" • "+rightYear2:"")+(it2.catno?" • "+it2.catno:"");
+
+        // ---- Show Artist • ReleaseYear • MasterYear • CatNo ----
+        var p2=[it2.artist];
+        if(it2.year!=null && it2.year!=="") p2.push(it2.year);
+        if(it2.master_year!=null && it2.master_year!=="") p2.push(it2.master_year);
+        if(it2.catno) p2.push(it2.catno);
+        var sL=document.createElement("div"); sL.className="sL"; sL.textContent=p2.join(" • ");
+
         metaL.appendChild(tL); metaL.appendChild(sL);
         li.appendChild(tw); li.appendChild(metaL);
         li.addEventListener("click",(function(id){return function(){showDetailsById(id);};})(it2.id));
@@ -444,4 +458,3 @@ s.textContent = parts.join(" • ");
 </script>
 </body>
 </html>
-
