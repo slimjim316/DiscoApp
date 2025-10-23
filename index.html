@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DiscoApp · Library</title>
 <style>
-  :root{ --bg:#ffffff; --text:#111111; --muted:#6b6b6b; --hair:#e6e6e6; --red:#ff3b30; --tile:#f5f5f7; }
+  :root{ --bg:#ffffff; --text:#111111; --muted:#6b6b6b; --hair:#e6e6e6; --red:#ff3b30; --tile:#f5f5f7; --bar:#0a84ff; }
   *{box-sizing:border-box} html,body{height:100%}
   body{ margin:0; background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -16,6 +16,9 @@
   .search input{flex:1;border:0;background:transparent;outline:none;font-size:16px;color:var(--text)}
   .search .mag{opacity:.6}
   .info{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding:8px 2px 6px}
+  .info-right{display:flex;gap:12px;align-items:center}
+  .progress-wrap{width:180px;height:6px;border-radius:999px;background:var(--hair);overflow:hidden}
+  .progress-bar{height:100%;width:0%;background:var(--bar);transition:width .25s ease; }
   main{padding:10px 10px 90px}
   .grid{ display:flex; flex-wrap:wrap; margin:-6px; }
   .card{ width:20%; padding:6px; }
@@ -66,7 +69,11 @@
   </div>
   <div class="info">
     <span id="count">0 items</span>
-    <span id="page">Page 1</span>
+    <div class="info-right">
+      <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
+      <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
+      <span id="page">Page 1</span>
+    </div>
   </div>
 </header>
 
@@ -134,11 +141,9 @@
   /* ---------- Master-year cache (PERSISTED) ---------- */
   var MASTER_YEAR = {};
   try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
-  function saveMasterYearCache(){
-    try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){}
-  }
+  function saveMasterYearCache(){ try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){} }
 
-  /* Track in-flight requests separately so failures can retry later */
+  /* Track active requests so progress can display “(active)” correctly */
   var MASTER_INFLIGHT = {}; // { master_id: true }
 
   /* ---------- Sorting helpers ---------- */
@@ -158,13 +163,14 @@
     return m ? +m[1] : null;
   }
 
-  /* ---------- Gentle queue + retry logic ---------- */
-  var CONCURRENCY = 6, inflight = 0, queue = [];
+  /* ---------- Queue + retry ---------- */
+  var CONCURRENCY = 6, inflight = 0, queue = [], tickTimer=null;
+
   function runQueue(){
     while(inflight<CONCURRENCY && queue.length){
       var job = queue.shift();
       inflight++;
-      job(function(){ inflight--; runQueue(); });
+      job(function(){ inflight--; updateProgress(); runQueue(); });
     }
   }
 
@@ -179,10 +185,13 @@
     urls.push("https://api.discogs.com/masters/" + encodeURIComponent(masterId));
 
     queue.push(function(done){
-      // up to 2 retries per URL (total tries <= 6)
       var urlIdx=0, attempt=0;
       function tryNext(){
-        if(urlIdx>=urls.length){ delete MASTER_INFLIGHT[masterId]; done(); cb(null,null); return; }
+        if(urlIdx>=urls.length){
+          delete MASTER_INFLIGHT[masterId];
+          done(); cb(null,null);
+          return;
+        }
         var u = urls[urlIdx];
         get(u, function(err, data){
           var y = !err ? parseYearFromMaster(data) : null;
@@ -192,10 +201,9 @@
             delete MASTER_INFLIGHT[masterId];
             done(); cb(null, y);
           }else{
-            // retry/backoff or move to next URL
             attempt++;
-            if(attempt<3){ // 3 tries on this URL
-              setTimeout(tryNext, attempt*600); // 0.6s,1.2s
+            if(attempt<3){
+              setTimeout(tryNext, attempt*600); // 0.6s, 1.2s
             }else{
               urlIdx++; attempt=0; tryNext();
             }
@@ -204,25 +212,35 @@
       }
       tryNext();
     });
+    updateProgress();
     runQueue();
   }
 
-  function fillMasterYears(items, onDone){
-    var wanted=[], seen={};
+  function wantMasters(items){
+    var list=[], seen={};
     for(var i=0;i<items.length;i++){
       var it=items[i], m=it.master_id;
-      if(m && !MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m] && !seen[m]){
-        seen[m]=1; wanted.push({id:m, url:it.master_url});
-      }
+      if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:it.master_url}); }
     }
-    if(!wanted.length){ if(onDone) onDone(); return; }
+    return list;
+  }
 
-    var left=wanted.length;
-    for(var j=0;j<wanted.length;j++){
-      (function(mid, murl){
-        fetchMaster(mid, murl, function(){ left--; if(left===0 && onDone) onDone(); });
-      })(wanted[j].id, wanted[j].url);
+  function fillMasterYears(items, onDone){
+    var all = wantMasters(items);
+    var pending=[], i;
+    for(i=0;i<all.length;i++){
+      var m=all[i].id;
+      if(!MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m]) pending.push(all[i]);
     }
+    if(!pending.length){ updateProgress(); if(onDone) onDone(); return; }
+
+    var left=pending.length;
+    for(i=0;i<pending.length;i++){
+      (function(mid, murl){
+        fetchMaster(mid, murl, function(){ left--; if(left===0){ updateProgress(); if(onDone) onDone(); }});
+      })(pending[i].id, pending[i].url);
+    }
+    updateProgress();
   }
 
   function cmpItems(a,b){
@@ -250,6 +268,35 @@
     // 4) Fallback: title A–Z
     var aT=(a.title||"").toLowerCase(), bT=(b.title||"").toLowerCase();
     if(aT<bT) return -1; if(aT>bT) return 1; return 0;
+  }
+
+  /* ---------- Progress UI ---------- */
+  function updateProgress(){
+    var progressTxt=document.getElementById("progressTxt");
+    var progressBar=document.getElementById("progressBar");
+    var all = wantMasters(cache);
+    var totalMasters = all.length;
+    var resolved=0, i;
+    for(i=0;i<all.length;i++){ if(MASTER_YEAR.hasOwnProperty(all[i].id)) resolved++; }
+    var active=0; for(var k in MASTER_INFLIGHT){ if(MASTER_INFLIGHT.hasOwnProperty(k)) active++; }
+
+    progressTxt.textContent = "Master years: " + resolved + " / " + totalMasters + " (" + active + " active)";
+    var pct = totalMasters ? Math.round((resolved/totalMasters)*100) : 0;
+    progressBar.style.width = pct + "%";
+  }
+
+  function ensureFetchLoop(){
+    if(tickTimer) return;
+    tickTimer = setInterval(function(){
+      fillMasterYears(cache, function(){});
+      updateProgress();
+      // stop looping if everything on this page is resolved
+      var all = wantMasters(cache), done=true, i;
+      for(i=0;i<all.length;i++){ if(!MASTER_YEAR.hasOwnProperty(all[i].id)) { done=false; break; } }
+      if(done && !Object.keys(MASTER_INFLIGHT).length){
+        clearInterval(tickTimer); tickTimer=null;
+      }
+    }, 4000);
   }
 
   /* ---------- Load & render ---------- */
@@ -299,11 +346,9 @@
         };
       });
 
-      // First render: uses persisted master years (if any)
       cache.sort(cmpItems);
       render();
-
-      // Fetch any missing master years, then re-sort + re-render if changed
+      updateProgress();
       fillMasterYears(cache, function(){
         var changed=false, i;
         for(i=0;i<cache.length;i++){
@@ -313,12 +358,11 @@
             changed=true;
           }
         }
-        if(changed){
-          cache.sort(cmpItems);
-          render();
-        }
-        if(typeof cb==="function") cb();
+        if(changed){ cache.sort(cmpItems); render(); }
+        updateProgress();
       });
+
+      ensureFetchLoop(); // keep nudging until page is complete
     });
   }
 
@@ -352,7 +396,7 @@
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
-        // Show Artist • ReleaseYear • MasterYear (debug visible)
+        // Visible debug: Artist • ReleaseYear • MasterYear
         var parts=[it.artist];
         if(it.year!=null && it.year!=="") parts.push(it.year);
         if(it.master_year!=null && it.master_year!=="") parts.push(it.master_year);
@@ -458,6 +502,7 @@
   document.getElementById("next").addEventListener("click", function(){ if(page<pages) loadPage(page+1); });
   document.getElementById("random").addEventListener("click", openRandom);
   document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
+
   document.getElementById("modal").addEventListener("click", function(e){ if(e.target && e.target.id==="modal") closeModal(); });
 
   /* ---------- Boot ---------- */
