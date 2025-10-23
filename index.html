@@ -45,9 +45,10 @@
   .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer }
   .btn:disabled{opacity:.5; cursor:not-allowed}
   .accent{border-color:var(--red); color:#fff; background:var(--red)}
-  .modal{position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,.35); display:flex; align-items:flex-end; justify-content:center}
+  .select{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 28px 8px 12px; border-radius:10px; font-size:15px; cursor:pointer; appearance:none; background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%); background-position:calc(100% - 18px) 16px, calc(100% - 12px) 16px; background-size:6px 6px; background-repeat:no-repeat;}
+  .modal{position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,35); display:flex; align-items:flex-end; justify-content:center}
   .modal.hidden{display:none}
-  .sheet{ width:100%; max-width:720px; background:var(--bg); border-radius:16px 16px 0 0; border:1px solid var(--hair); border-bottom:0; max-height:90vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,.15); }
+  .sheet{ width:100%; max-width:720px; background:var(--bg); border-radius:16px 16px 0 0; border:1px solid var(--hair); border-bottom:0; max-height:90vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,15); }
   .drag{width:48px;height:5px;border-radius:999px;background:var(--hair);margin:8px auto}
   .hero{width:100%; max-height:360px; object-fit:cover; border-bottom:1px solid var(--hair); background:#ddd}
   #md-body{padding:14px 16px 18px 16px}
@@ -89,6 +90,12 @@
     <button id="random" class="btn accent">🎲 Random</button>
   </div>
   <div class="group">
+    <select id="pageSize" class="select" title="Items per page">
+      <option value="25">Show 25</option>
+      <option value="50">Show 50</option>
+      <option value="100" selected>Show 100</option>
+      <option value="250">Show 250</option>
+    </select>
     <button id="toggle" class="btn">List View</button>
   </div>
 </div>
@@ -108,7 +115,9 @@
   var USER = "slimjim316";
 
   /* ---------- STATE ---------- */
-  var page=1, per=100, folder=0, cache=[], total=0, pages=1, q="", view="grid";
+  var page=1, per=100, folder=0, total=0, pages=1, q="", view="grid";
+  var allItems = [];      // full, globally-sorted collection
+  var filteredItems = []; // q-filtered view of allItems
 
   /* ---------- AJAX (ES5) ---------- */
   function get(url, cb){
@@ -274,7 +283,7 @@
   function updateProgress(){
     var progressTxt=document.getElementById("progressTxt");
     var progressBar=document.getElementById("progressBar");
-    var all = wantMasters(cache);
+    var all = wantMasters(allItems); // use the full library
     var totalMasters = all.length;
     var resolved=0, i;
     for(i=0;i<all.length;i++){ if(MASTER_YEAR.hasOwnProperty(all[i].id)) resolved++; }
@@ -288,10 +297,10 @@
   function ensureFetchLoop(){
     if(tickTimer) return;
     tickTimer = setInterval(function(){
-      fillMasterYears(cache, function(){});
+      fillMasterYears(allItems, function(){});
       updateProgress();
-      // stop looping if everything on this page is resolved
-      var all = wantMasters(cache), done=true, i;
+      // stop looping if everything is resolved
+      var all = wantMasters(allItems), done=true, i;
       for(i=0;i<all.length;i++){ if(!MASTER_YEAR.hasOwnProperty(all[i].id)) { done=false; break; } }
       if(done && !Object.keys(MASTER_INFLIGHT).length){
         clearInterval(tickTimer); tickTimer=null;
@@ -299,71 +308,100 @@
     }, 4000);
   }
 
-  /* ---------- Load & render ---------- */
-  function loadPage(p, cb){
-    page=p;
-    document.getElementById("page").textContent="Page "+page;
+  /* ---------- Client-side load & paging ---------- */
 
-    var url = API + "/api/collection?username=" + encodeURIComponent(USER) +
-              "&folder_id=" + folder + "&per_page=" + per + "&page=" + page +
-              "&sort=artist&sort_order=asc";
+  function mapReleases(arr){
+    return arr.map(function(r){
+      var info = r && r.basic_information ? r.basic_information : r || {};
+      var artistsArr = info.artists || [];
+      var firstArtist = artistsArr[0] && artistsArr[0].name ? artistsArr[0].name : (info.artist || "");
+      var lbls = info.labels || [];
+      var firstLbl = lbls[0] || {};
+      var mid = info.master_id || r.master_id || null;
+      var norm = normalizeArtist(firstArtist);
+      return {
+        id: info.id || r.id,
+        title: info.title || "",
+        artist: firstArtist,
+        normArtist: isVarious(firstArtist) ? "various" : norm,
+        isVarious: isVarious(firstArtist),
+        year: (typeof info.year === "number" || typeof info.year === "string") ? info.year : null,
+        master_id: mid,
+        master_url: info.master_url || (mid ? ("https://api.discogs.com/masters/"+mid) : null),
+        master_year: (mid && MASTER_YEAR[mid]!=null) ? MASTER_YEAR[mid] : null,
+        catno: firstLbl.catno || info.catno || "",
+        thumb: info.cover_image || info.thumb || ""
+      };
+    });
+  }
 
-    get(url, function(err, data){
+  // Fetch all pages from API (per_page=100)
+  function fetchAllItems(cb){
+    var apiPer = 100;
+    var url1 = API + "/api/collection?username=" + encodeURIComponent(USER) +
+               "&folder_id=" + folder + "&per_page=" + apiPer + "&page=1";
+
+    get(url1, function(err, data){
       if(err){ alert(err.message); return; }
 
-      var arr = [];
+      var first = [];
       if(data){
-        if(isArray(data.releases))      arr = data.releases;
-        else if(isArray(data.items))     arr = data.items;
-        else if(isArray(data.results))   arr = data.results;
-        else if(isArray(data))           arr = data;
+        if(isArray(data.releases)) first = data.releases;
+        else if(isArray(data.items)) first = data.items;
+        else if(isArray(data.results)) first = data.results;
+        else if(isArray(data)) first = data;
       }
+      total = (data && data.pagination && data.pagination.items) ? data.pagination.items : first.length;
+      var totalPages = (data && data.pagination && data.pagination.pages) ? data.pagination.pages : Math.ceil(total / apiPer);
 
-      total = (data && data.pagination && data.pagination.items) ? data.pagination.items : (arr.length||0);
-      pages = (data && data.pagination && data.pagination.pages) ? data.pagination.pages : (total ? Math.ceil(total/per) : 1);
+      allItems = mapReleases(first);
 
-      cache = arr.map(function(r){
-        var info = r && r.basic_information ? r.basic_information : r || {};
-        var artistsArr = info.artists || [];
-        var firstArtist = artistsArr[0] && artistsArr[0].name ? artistsArr[0].name : (info.artist || "");
-        var lbls = info.labels || [];
-        var firstLbl = lbls[0] || {};
-        var mid = info.master_id || r.master_id || null;
-        var norm = normalizeArtist(firstArtist);
+      if(totalPages <= 1){ finalizeAllItems(cb); return; }
 
-        return {
-          id: info.id || r.id,
-          title: info.title || "",
-          artist: firstArtist,
-          normArtist: isVarious(firstArtist) ? "various" : norm,
-          isVarious: isVarious(firstArtist),
-          year: (typeof info.year === "number" || typeof info.year === "string") ? info.year : null,
-          master_id: mid,
-          master_url: info.master_url || (mid ? ("https://api.discogs.com/masters/"+mid) : null),
-          master_year: (mid && MASTER_YEAR[mid]!=null) ? MASTER_YEAR[mid] : null,
-          catno: firstLbl.catno || info.catno || "",
-          thumb: info.cover_image || info.thumb || ""
-        };
-      });
-
-      cache.sort(cmpItems);
-      render();
-      updateProgress();
-      fillMasterYears(cache, function(){
-        var changed=false, i;
-        for(i=0;i<cache.length;i++){
-          var it=cache[i];
-          if(it.master_id && it.master_year==null && MASTER_YEAR.hasOwnProperty(it.master_id)){
-            it.master_year = MASTER_YEAR[it.master_id];
-            changed=true;
+      var nextPage = 2;
+      function loadNext(){
+        if(nextPage > totalPages){ finalizeAllItems(cb); return; }
+        var url = API + "/api/collection?username=" + encodeURIComponent(USER) +
+                  "&folder_id=" + folder + "&per_page=" + apiPer + "&page=" + nextPage;
+        get(url, function(e, d){
+          if(!e && d){
+            var arr = [];
+            if(isArray(d.releases)) arr = d.releases;
+            else if(isArray(d.items)) arr = d.items;
+            else if(isArray(d.results)) arr = d.results;
+            else if(isArray(d)) arr = d;
+            allItems = allItems.concat(mapReleases(arr));
           }
-        }
-        if(changed){ cache.sort(cmpItems); render(); }
-        updateProgress();
-      });
-
-      ensureFetchLoop(); // keep nudging until page is complete
+          nextPage++;
+          loadNext();
+        });
+      }
+      loadNext();
     });
+  }
+
+  function finalizeAllItems(cb){
+    // Global sort once
+    allItems.sort(cmpItems);
+
+    // Resolve master years across the whole library; resort if any changed
+    updateProgress();
+    fillMasterYears(allItems, function(){
+      var changed=false;
+      for(var i=0;i<allItems.length;i++){
+        var it=allItems[i];
+        if(it.master_id && it.master_year==null && MASTER_YEAR.hasOwnProperty(it.master_id)){
+          it.master_year = MASTER_YEAR[it.master_id];
+          changed = true;
+        }
+      }
+      if(changed){ allItems.sort(cmpItems); }
+      updateProgress();
+      applyFilterAndPaginate();
+      if(typeof cb==="function") cb();
+    });
+
+    ensureFetchLoop();
   }
 
   function matches(it, needle){
@@ -375,19 +413,33 @@
            String(it.catno||"").toLowerCase().indexOf(needle)>-1;
   }
 
+  function applyFilterAndPaginate(){
+    filteredItems = [];
+    for(var i=0;i<allItems.length;i++){ if(matches(allItems[i], q)) filteredItems.push(allItems[i]); }
+
+    var targetPer = per;
+    pages = Math.max(1, Math.ceil(filteredItems.length / (targetPer || 1)));
+    if(page > pages) page = pages;
+
+    document.getElementById("count").textContent = filteredItems.length + " of " + allItems.length + " (total " + total + ")";
+    document.getElementById("page").textContent = "Page " + page;
+
+    render();
+  }
+
   function render(){
     var grid=document.getElementById("grid");
     var list=document.getElementById("list");
     grid.innerHTML=""; list.innerHTML="";
 
-    var filtered=[], i;
-    for(i=0;i<cache.length;i++){ if(matches(cache[i], q)) filtered.push(cache[i]); }
-    document.getElementById("count").textContent = filtered.length+" of "+cache.length+" (total "+total+")";
+    var start = (page-1) * per;
+    var end   = start + per;
+    var pageSlice = filteredItems.slice(start, end);
 
     if(view==="grid"){
       grid.style.display="flex"; list.style.display="none";
-      for(i=0;i<filtered.length;i++){
-        var it=filtered[i];
+      for(var i=0;i<pageSlice.length;i++){
+        var it=pageSlice[i];
         var card=document.createElement("div"); card.className="card";
         var inner=document.createElement("div"); inner.className="cardInner";
         var wrap=document.createElement("div"); wrap.className="artWrap";
@@ -396,7 +448,6 @@
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
-        // Visible debug: Artist • ReleaseYear • MasterYear
         var parts=[it.artist];
         if(it.year!=null && it.year!=="") parts.push(it.year);
         if(it.master_year!=null && it.master_year!=="") parts.push(it.master_year);
@@ -410,8 +461,8 @@
       }
     }else{
       grid.style.display="none"; list.style.display="block";
-      for(i=0;i<filtered.length;i++){
-        var it2=filtered[i];
+      for(var j=0;j<pageSlice.length;j++){
+        var it2=pageSlice[j];
         var li=document.createElement("li"); li.className="row";
         var tw=document.createElement("div"); tw.className="thumbWrap";
         var th=document.createElement("img"); th.className="thumb"; th.alt=""; th.src=it2.thumb||"";
@@ -484,29 +535,28 @@
 
   /* ---------- Controls ---------- */
   function openRandom(){
-    if(!total){ alert("Collection not loaded yet."); return; }
-    var idx=Math.floor(Math.random()*total)+1;
-    var targetPage=Math.ceil(idx/per);
-    var indexOnPage=(idx-1)%per;
-    if(page===targetPage && cache[indexOnPage]){
-      showDetailsById(cache[indexOnPage].id); return;
-    }
-    loadPage(targetPage, function(){
-      if(cache[indexOnPage]) showDetailsById(cache[indexOnPage].id);
-      else alert("Random pick failed");
-    });
+    var pool = filteredItems.length ? filteredItems : allItems;
+    if(!pool.length){ alert("Collection not loaded yet."); return; }
+    var idx=Math.floor(Math.random()*pool.length);
+    showDetailsById(pool[idx].id);
   }
 
-  document.getElementById("q").addEventListener("input", function(e){ q=e.target.value; render(); });
-  document.getElementById("prev").addEventListener("click", function(){ if(page>1) loadPage(page-1); });
-  document.getElementById("next").addEventListener("click", function(){ if(page<pages) loadPage(page+1); });
+  document.getElementById("q").addEventListener("input", function(e){ q=e.target.value; page=1; applyFilterAndPaginate(); });
+  document.getElementById("prev").addEventListener("click", function(){ if(page>1){ page--; applyFilterAndPaginate(); } });
+  document.getElementById("next").addEventListener("click", function(){ if(page<pages){ page++; applyFilterAndPaginate(); } });
   document.getElementById("random").addEventListener("click", openRandom);
   document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
+  document.getElementById("pageSize").addEventListener("change", function(e){
+    var v=parseInt(e.target.value,10);
+    per = (!isNaN(v) && v>0) ? v : 100;
+    page=1;
+    applyFilterAndPaginate();
+  });
 
   document.getElementById("modal").addEventListener("click", function(e){ if(e.target && e.target.id==="modal") closeModal(); });
 
   /* ---------- Boot ---------- */
-  loadPage(1);
+  fetchAllItems(function(){ applyFilterAndPaginate(); });
 })();
 </script>
 </body>
