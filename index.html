@@ -119,6 +119,19 @@
   var allItems = [];      // full, globally-sorted collection
   var filteredItems = []; // q-filtered view of allItems
 
+// Persisted settings
+var PER_KEY = 'discoapp_per_page';
+
+// Read saved per-page (only allow 25/50/100/250)
+(function restorePer(){
+  var saved = parseInt(localStorage.getItem(PER_KEY) || '100', 10);
+  if([25,50,100,250].indexOf(saved) === -1) saved = 100;
+  per = saved;
+  // reflect in the UI if it's mounted
+  var sel = document.getElementById('pageSize');
+  if(sel){ sel.value = String(per); }
+})();
+  
   /* ---------- AJAX (ES5) ---------- */
   function get(url, cb){
     var x=new XMLHttpRequest();
@@ -546,12 +559,13 @@
   document.getElementById("next").addEventListener("click", function(){ if(page<pages){ page++; applyFilterAndPaginate(); } });
   document.getElementById("random").addEventListener("click", openRandom);
   document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
-  document.getElementById("pageSize").addEventListener("change", function(e){
-    var v=parseInt(e.target.value,10);
-    per = (!isNaN(v) && v>0) ? v : 100;
-    page=1;
-    applyFilterAndPaginate();
-  });
+document.getElementById("pageSize").addEventListener("change", function(e){
+  var v = parseInt(e.target.value, 10);
+  per = (!isNaN(v) && [25,50,100,250].indexOf(v) !== -1) ? v : 100;
+  localStorage.setItem(PER_KEY, String(per));   // <-- persist
+  page = 1;
+  applyFilterAndPaginate();
+});
 
   document.getElementById("modal").addEventListener("click", function(e){ if(e.target && e.target.id==="modal") closeModal(); });
 
@@ -561,3 +575,4 @@
 </script>
 </body>
 </html>
+
