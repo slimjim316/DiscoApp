@@ -131,11 +131,17 @@
   function closeModal(){ var m=document.getElementById("modal"); m.className="modal hidden"; m.setAttribute("aria-hidden","true");
     document.getElementById("md-body").innerHTML=""; document.getElementById("md-hero").src=""; }
 
-  /* ---------- Master-year cache & sort helpers ---------- */
-  var MASTER_YEAR = {};    // { master_id: year }
-  var MASTER_FETCHED = {}; // { master_id: true }
-  var CONCURRENCY = 6, inflight = 0, queue = [];
+  /* ---------- Master-year cache (PERSISTED) ---------- */
+  var MASTER_YEAR = {};
+  try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
+  function saveMasterYearCache(){
+    try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){}
+  }
 
+  /* Track in-flight requests separately so failures can retry later */
+  var MASTER_INFLIGHT = {}; // { master_id: true }
+
+  /* ---------- Sorting helpers ---------- */
   function normalizeArtist(name){
     if(!name) return "";
     var s = String(name).replace(/^\s*the\s+/i, ""); // strip leading "The "
@@ -152,6 +158,8 @@
     return m ? +m[1] : null;
   }
 
+  /* ---------- Gentle queue + retry logic ---------- */
+  var CONCURRENCY = 6, inflight = 0, queue = [];
   function runQueue(){
     while(inflight<CONCURRENCY && queue.length){
       var job = queue.shift();
@@ -160,39 +168,41 @@
     }
   }
 
-  // Fetch the Discogs master doc; prefer provided master_url, fall back to /masters/{id}
   function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
     if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
-    if(MASTER_FETCHED[masterId]){ cb(null,null); return; }
-    MASTER_FETCHED[masterId]=true;
+    if(MASTER_INFLIGHT[masterId]){ cb(null,null); return; } // already queued
+    MASTER_INFLIGHT[masterId] = true;
 
     var urls = [];
     if(masterUrl) urls.push(masterUrl);
     urls.push("https://api.discogs.com/masters/" + encodeURIComponent(masterId));
 
     queue.push(function(done){
-      (function tryAt(i){
-        if(i>=urls.length){ console.warn("[master] all failed for id", masterId); done(); cb(null,null); return; }
-        var u = urls[i];
-        console.log("[master] GET", u);
+      // up to 2 retries per URL (total tries <= 6)
+      var urlIdx=0, attempt=0;
+      function tryNext(){
+        if(urlIdx>=urls.length){ delete MASTER_INFLIGHT[masterId]; done(); cb(null,null); return; }
+        var u = urls[urlIdx];
         get(u, function(err, data){
-          if(err){
-            console.warn("[master] ERR", u, String(err && err.message || err));
-            tryAt(i+1);
-            return;
-          }
-          var y = parseYearFromMaster(data);
-          console.log("[master] OK", u, "year=", y);
-          if(y!=null){
+          var y = !err ? parseYearFromMaster(data) : null;
+          if(!err && y!=null){
             MASTER_YEAR[masterId]=y;
+            saveMasterYearCache();
+            delete MASTER_INFLIGHT[masterId];
             done(); cb(null, y);
           }else{
-            console.warn("[master] No year in response", u, data);
-            tryAt(i+1);
+            // retry/backoff or move to next URL
+            attempt++;
+            if(attempt<3){ // 3 tries on this URL
+              setTimeout(tryNext, attempt*600); // 0.6s,1.2s
+            }else{
+              urlIdx++; attempt=0; tryNext();
+            }
           }
         });
-      })(0);
+      }
+      tryNext();
     });
     runQueue();
   }
@@ -201,7 +211,7 @@
     var wanted=[], seen={};
     for(var i=0;i<items.length;i++){
       var it=items[i], m=it.master_id;
-      if(m && !MASTER_YEAR.hasOwnProperty(m) && !MASTER_FETCHED[m] && !seen[m]){
+      if(m && !MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m] && !seen[m]){
         seen[m]=1; wanted.push({id:m, url:it.master_url});
       }
     }
@@ -254,7 +264,6 @@
     get(url, function(err, data){
       if(err){ alert(err.message); return; }
 
-      // Prefer Discogs 'releases'; fallback if Worker changes shape
       var arr = [];
       if(data){
         if(isArray(data.releases))      arr = data.releases;
@@ -290,11 +299,11 @@
         };
       });
 
-      // Initial render (uses whatever master years we already have)
+      // First render: uses persisted master years (if any)
       cache.sort(cmpItems);
       render();
 
-      // Fetch missing master years → re-sort → render
+      // Fetch any missing master years, then re-sort + re-render if changed
       fillMasterYears(cache, function(){
         var changed=false, i;
         for(i=0;i<cache.length;i++){
@@ -343,7 +352,7 @@
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
-        // ---- Show Artist • ReleaseYear • MasterYear (debug visible) ----
+        // Show Artist • ReleaseYear • MasterYear (debug visible)
         var parts=[it.artist];
         if(it.year!=null && it.year!=="") parts.push(it.year);
         if(it.master_year!=null && it.master_year!=="") parts.push(it.master_year);
@@ -366,7 +375,6 @@
         var metaL=document.createElement("div"); metaL.className="metaL";
         var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
 
-        // ---- Show Artist • ReleaseYear • MasterYear • CatNo ----
         var p2=[it2.artist];
         if(it2.year!=null && it2.year!=="") p2.push(it2.year);
         if(it2.master_year!=null && it2.master_year!=="") p2.push(it2.master_year);
