@@ -119,19 +119,18 @@
   var allItems = [];      // full, globally-sorted collection
   var filteredItems = []; // q-filtered view of allItems
 
-// Persisted settings
-var PER_KEY = 'discoapp_per_page';
+  // Persisted settings
+  var PER_KEY = 'discoapp_per_page';
 
-// Read saved per-page (only allow 25/50/100/250)
-(function restorePer(){
-  var saved = parseInt(localStorage.getItem(PER_KEY) || '100', 10);
-  if([25,50,100,250].indexOf(saved) === -1) saved = 100;
-  per = saved;
-  // reflect in the UI if it's mounted
-  var sel = document.getElementById('pageSize');
-  if(sel){ sel.value = String(per); }
-})();
-  
+  // Restore per-page (25/50/100/250 only)
+  (function restorePer(){
+    var saved = parseInt(localStorage.getItem(PER_KEY) || '100', 10);
+    if([25,50,100,250].indexOf(saved) === -1) saved = 100;
+    per = saved;
+    var sel = document.getElementById('pageSize');
+    if(sel){ sel.value = String(per); }
+  })();
+
   /* ---------- AJAX (ES5) ---------- */
   function get(url, cb){
     var x=new XMLHttpRequest();
@@ -160,29 +159,34 @@ var PER_KEY = 'discoapp_per_page';
   function closeModal(){ var m=document.getElementById("modal"); m.className="modal hidden"; m.setAttribute("aria-hidden","true");
     document.getElementById("md-body").innerHTML=""; document.getElementById("md-hero").src=""; }
 
+  // Year validation (kill 0s / junk)
+  function validYear(y){
+    var n = parseInt(y, 10);
+    return (n>=1000 && n<=3000) ? n : null;
+  }
+
   /* ---------- Master-year cache (PERSISTED) ---------- */
   var MASTER_YEAR = {};
   try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
   function saveMasterYearCache(){ try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){} }
 
-  /* Track active requests so progress can display “(active)” correctly */
   var MASTER_INFLIGHT = {}; // { master_id: true }
 
   /* ---------- Sorting helpers ---------- */
   function normalizeArtist(name){
     if(!name) return "";
-    var s = String(name).replace(/^\s*the\s+/i, ""); // strip leading "The "
+    var s = String(name).replace(/^\s*the\s+/i, "");
     return s.toLowerCase();
   }
   function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
 
   function parseYearFromMaster(data){
     if(!data) return null;
-    if(typeof data.year === "number") return data.year;
-    if(typeof data.year === "string" && /^\d{4}$/.test(data.year)) return +data.year;
+    if(typeof data.year === "number") return validYear(data.year);
+    if(typeof data.year === "string" && /^\d{4}$/.test(data.year)) return validYear(+data.year);
     var r = data.released || data.released_date || "";
     var m = /^(\d{4})/.exec(r);
-    return m ? +m[1] : null;
+    return m ? validYear(+m[1]) : null;
   }
 
   /* ---------- Queue + retry ---------- */
@@ -199,7 +203,7 @@ var PER_KEY = 'discoapp_per_page';
   function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
     if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
-    if(MASTER_INFLIGHT[masterId]){ cb(null,null); return; } // already queued
+    if(MASTER_INFLIGHT[masterId]){ cb(null,null); return; }
     MASTER_INFLIGHT[masterId] = true;
 
     var urls = [];
@@ -211,24 +215,18 @@ var PER_KEY = 'discoapp_per_page';
       function tryNext(){
         if(urlIdx>=urls.length){
           delete MASTER_INFLIGHT[masterId];
-          done(); cb(null,null);
-          return;
+          done(); cb(null,null); return;
         }
         var u = urls[urlIdx];
         get(u, function(err, data){
           var y = !err ? parseYearFromMaster(data) : null;
           if(!err && y!=null){
-            MASTER_YEAR[masterId]=y;
-            saveMasterYearCache();
-            delete MASTER_INFLIGHT[masterId];
-            done(); cb(null, y);
+            MASTER_YEAR[masterId]=y; saveMasterYearCache();
+            delete MASTER_INFLIGHT[masterId]; done(); cb(null, y);
           }else{
             attempt++;
-            if(attempt<3){
-              setTimeout(tryNext, attempt*600); // 0.6s, 1.2s
-            }else{
-              urlIdx++; attempt=0; tryNext();
-            }
+            if(attempt<3){ setTimeout(tryNext, attempt*600); }
+            else { urlIdx++; attempt=0; tryNext(); }
           }
         });
       }
@@ -266,28 +264,23 @@ var PER_KEY = 'discoapp_per_page';
   }
 
   function cmpItems(a,b){
-    // 1) Artist A–Z (ignore "The ")
     if(a.normArtist < b.normArtist) return -1;
     if(a.normArtist > b.normArtist) return 1;
 
-    // 1b) If both “Various”, title A–Z
     if(a.isVarious && b.isVarious){
       var at=(a.title||"").toLowerCase(), bt=(b.title||"").toLowerCase();
       if(at<bt) return -1; if(at>bt) return 1; return 0;
     }
 
-    // 2) Master year (fallback to copy’s release year)
-    var am = a.master_year!=null ? a.master_year : (a.year!=null ? a.year : null);
-    var bm = b.master_year!=null ? b.master_year : (b.year!=null ? b.year : null);
+    var am = (a.master_year!=null ? a.master_year : (a.year!=null ? a.year : null));
+    var bm = (b.master_year!=null ? b.master_year : (b.year!=null ? b.year : null));
     if(am!=null && bm!=null && am!==bm) return am - bm;
 
-    // 3) Same master → sort by each copy’s release year
     if(a.master_id && b.master_id && a.master_id===b.master_id){
       var ar=a.year||0, br=b.year||0;
       if(ar!==br) return ar - br;
     }
 
-    // 4) Fallback: title A–Z
     var aT=(a.title||"").toLowerCase(), bT=(b.title||"").toLowerCase();
     if(aT<bT) return -1; if(aT>bT) return 1; return 0;
   }
@@ -296,7 +289,8 @@ var PER_KEY = 'discoapp_per_page';
   function updateProgress(){
     var progressTxt=document.getElementById("progressTxt");
     var progressBar=document.getElementById("progressBar");
-    var all = wantMasters(allItems); // use the full library
+    var progressWrap=document.querySelector(".progress-wrap");
+    var all = wantMasters(allItems);
     var totalMasters = all.length;
     var resolved=0, i;
     for(i=0;i<all.length;i++){ if(MASTER_YEAR.hasOwnProperty(all[i].id)) resolved++; }
@@ -305,6 +299,13 @@ var PER_KEY = 'discoapp_per_page';
     progressTxt.textContent = "Master years: " + resolved + " / " + totalMasters + " (" + active + " active)";
     var pct = totalMasters ? Math.round((resolved/totalMasters)*100) : 0;
     progressBar.style.width = pct + "%";
+
+    // Hide the bar when complete (and no requests in flight); show otherwise
+    if(totalMasters && pct===100 && !active){
+      progressWrap.style.display = "none";
+    }else{
+      progressWrap.style.display = "block";
+    }
   }
 
   function ensureFetchLoop(){
@@ -312,7 +313,6 @@ var PER_KEY = 'discoapp_per_page';
     tickTimer = setInterval(function(){
       fillMasterYears(allItems, function(){});
       updateProgress();
-      // stop looping if everything is resolved
       var all = wantMasters(allItems), done=true, i;
       for(i=0;i<all.length;i++){ if(!MASTER_YEAR.hasOwnProperty(all[i].id)) { done=false; break; } }
       if(done && !Object.keys(MASTER_INFLIGHT).length){
@@ -338,10 +338,10 @@ var PER_KEY = 'discoapp_per_page';
         artist: firstArtist,
         normArtist: isVarious(firstArtist) ? "various" : norm,
         isVarious: isVarious(firstArtist),
-        year: (typeof info.year === "number" || typeof info.year === "string") ? info.year : null,
+        year: validYear((typeof info.year==="number"||typeof info.year==="string")?info.year:null),
         master_id: mid,
         master_url: info.master_url || (mid ? ("https://api.discogs.com/masters/"+mid) : null),
-        master_year: (mid && MASTER_YEAR[mid]!=null) ? MASTER_YEAR[mid] : null,
+        master_year: (mid && MASTER_YEAR[mid]!=null) ? validYear(MASTER_YEAR[mid]) : null,
         catno: firstLbl.catno || info.catno || "",
         thumb: info.cover_image || info.thumb || ""
       };
@@ -394,18 +394,16 @@ var PER_KEY = 'discoapp_per_page';
   }
 
   function finalizeAllItems(cb){
-    // Global sort once
     allItems.sort(cmpItems);
 
-    // Resolve master years across the whole library; resort if any changed
     updateProgress();
     fillMasterYears(allItems, function(){
-      var changed=false;
-      for(var i=0;i<allItems.length;i++){
+      var changed=false, i;
+      for(i=0;i<allItems.length;i++){
         var it=allItems[i];
         if(it.master_id && it.master_year==null && MASTER_YEAR.hasOwnProperty(it.master_id)){
-          it.master_year = MASTER_YEAR[it.master_id];
-          changed = true;
+          var vy = validYear(MASTER_YEAR[it.master_id]);
+          if(vy!=null){ it.master_year = vy; changed = true; }
         }
       }
       if(changed){ allItems.sort(cmpItems); }
@@ -430,13 +428,20 @@ var PER_KEY = 'discoapp_per_page';
     filteredItems = [];
     for(var i=0;i<allItems.length;i++){ if(matches(allItems[i], q)) filteredItems.push(allItems[i]); }
 
-    var targetPer = per;
-    pages = Math.max(1, Math.ceil(filteredItems.length / (targetPer || 1)));
+    pages = Math.max(1, Math.ceil(filteredItems.length / (per || 1)));
     if(page > pages) page = pages;
 
-    document.getElementById("count").textContent = filteredItems.length + " of " + allItems.length + " (total " + total + ")";
-    document.getElementById("page").textContent = "Page " + page;
+    // Count now shows a RANGE
+    var start = (page-1) * per;
+    var end   = Math.min(start + per, filteredItems.length);
+    var countEl = document.getElementById("count");
+    if(filteredItems.length===0){
+      countEl.textContent = "0 of 0 (total " + total + ")";
+    }else{
+      countEl.textContent = (start+1) + "-" + end + " of " + filteredItems.length + " (total " + total + ")";
+    }
 
+    document.getElementById("page").textContent = "Page " + page;
     render();
   }
 
@@ -462,8 +467,8 @@ var PER_KEY = 'discoapp_per_page';
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
         var parts=[it.artist];
-        if(it.year!=null && it.year!=="") parts.push(it.year);
-        if(it.master_year!=null && it.master_year!=="") parts.push(it.master_year);
+        if(it.year!=null) parts.push(it.year);
+        if(it.master_year!=null) parts.push(it.master_year);
         var s=document.createElement("div"); s.className="s"; s.textContent=parts.join(" • ");
 
         meta.appendChild(t); meta.appendChild(s);
@@ -484,8 +489,8 @@ var PER_KEY = 'discoapp_per_page';
         var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
 
         var p2=[it2.artist];
-        if(it2.year!=null && it2.year!=="") p2.push(it2.year);
-        if(it2.master_year!=null && it2.master_year!=="") p2.push(it2.master_year);
+        if(it2.year!=null) p2.push(it2.year);
+        if(it2.master_year!=null) p2.push(it2.master_year);
         if(it2.catno) p2.push(it2.catno);
         var sL=document.createElement("div"); sL.className="sL"; sL.textContent=p2.join(" • ");
 
@@ -507,7 +512,8 @@ var PER_KEY = 'discoapp_per_page';
   function showDetails(release){
     var body=document.getElementById("md-body"), hero=document.getElementById("md-hero");
     var title=release.title||"", artists=(release.artists&&release.artists[0]?release.artists[0].name:"");
-    var year=release.year||"", lbl=(release.labels&&release.labels[0]?release.labels[0].name:"");
+    var year=validYear(release.year)||""; // squash 0 here too
+    var lbl=(release.labels&&release.labels[0]?release.labels[0].name:"");
     var cat=(release.labels&&release.labels[0]?release.labels[0].catno:""), country=release.country||"";
     var fmts=(release.formats&&release.formats[0]?release.formats[0].name:"");
     var genres=(release.genres?release.genres.join(", "):"");
@@ -521,7 +527,8 @@ var PER_KEY = 'discoapp_per_page';
     html+='<div class="meta-row">'+escapeHtml(artists)+(year?" • "+year:"")+'</div>';
     html+='<div class="meta-row">'+(lbl?escapeHtml(lbl):"")+(cat?" • "+escapeHtml(cat):"")+(country?" • "+escapeHtml(country):"")+'</div>';
     if(release.master_id && MASTER_YEAR[release.master_id]!=null){
-      html+='<div class="meta-row">Master released: '+MASTER_YEAR[release.master_id]+'</div>';
+      var my = validYear(MASTER_YEAR[release.master_id]);
+      if(my!=null) html+='<div class="meta-row">Master released: '+my+'</div>';
     }
     if(fmts)   html+='<div class="meta-row">Format: '+escapeHtml(fmts)+'</div>';
     if(genres) html+='<div class="meta-row">Genres: '+escapeHtml(genres)+'</div>';
@@ -559,13 +566,13 @@ var PER_KEY = 'discoapp_per_page';
   document.getElementById("next").addEventListener("click", function(){ if(page<pages){ page++; applyFilterAndPaginate(); } });
   document.getElementById("random").addEventListener("click", openRandom);
   document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
-document.getElementById("pageSize").addEventListener("change", function(e){
-  var v = parseInt(e.target.value, 10);
-  per = (!isNaN(v) && [25,50,100,250].indexOf(v) !== -1) ? v : 100;
-  localStorage.setItem(PER_KEY, String(per));   // <-- persist
-  page = 1;
-  applyFilterAndPaginate();
-});
+  document.getElementById("pageSize").addEventListener("change", function(e){
+    var v = parseInt(e.target.value, 10);
+    per = (!isNaN(v) && [25,50,100,250].indexOf(v) !== -1) ? v : 100;
+    localStorage.setItem(PER_KEY, String(per));
+    page = 1;
+    applyFilterAndPaginate();
+  });
 
   document.getElementById("modal").addEventListener("click", function(e){ if(e.target && e.target.id==="modal") closeModal(); });
 
@@ -575,4 +582,3 @@ document.getElementById("pageSize").addEventListener("change", function(e){
 </script>
 </body>
 </html>
-
