@@ -10,6 +10,14 @@
   body{ margin:0; background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+
+  /* Version tag */
+  .version-tag {
+    position: fixed; top: 6px; right: 10px;
+    font-size: 12px; color: var(--muted); opacity: .6;
+    user-select: none; z-index: 50;
+  }
+
   header{ position:sticky; top:0; z-index:10; background:var(--bg); padding:8px 12px 6px; border-bottom:1px solid var(--hair); }
   .title{font-size:28px;font-weight:700;margin:8px 2px 10px}
   .search{ display:flex; align-items:center; gap:8px; background:var(--tile); border:1px solid var(--hair); padding:10px 12px; border-radius:12px; }
@@ -20,6 +28,8 @@
   .progress-wrap{width:180px;height:6px;border-radius:999px;background:var(--hair);overflow:hidden}
   .progress-bar{height:100%;width:0%;background:var(--bar);transition:width .25s ease; }
   main{padding:10px 10px 90px}
+
+  /* Grid cards */
   .grid{ display:flex; flex-wrap:wrap; margin:-6px; }
   .card{ width:20%; padding:6px; }
   .cardInner{ background:var(--bg); border:1px solid var(--hair); border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; height:100%;}
@@ -33,6 +43,7 @@
   @media (max-width:600px) { .card{width:50%} }
   @media (max-width:380px) { .card{width:100%} }
 
+  /* List rows */
   .list{list-style:none; padding:0; margin:0; display:none;}
   .row{display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid var(--hair); cursor:pointer}
   .thumbWrap{position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden; background:#ddd; margin-right:12px}
@@ -41,6 +52,7 @@
   .tL{font-weight:700;font-size:16px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sL{margin-top:2px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+  /* Toolbar */
   .toolbar{ position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--hair);
     display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; }
   .group{display:flex; gap:8px; align-items:center}
@@ -51,7 +63,7 @@
     background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%);
     background-position:calc(100% - 18px) 16px, calc(100% - 12px) 16px; background-size:6px 6px; background-repeat:no-repeat;}
 
-  /* ===== Details sheet (Apple Music-y) ===== */
+  /* ===== Details sheet ===== */
   .modal{position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,.35); display:flex; align-items:flex-end; justify-content:center}
   .modal.hidden{display:none}
   .sheet{ width:100%; max-width:980px; background:var(--bg); border-radius:16px 16px 0 0; border:1px solid var(--hair); border-bottom:0; max-height:90vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,.15); }
@@ -59,14 +71,18 @@
   #md-body{padding:14px 16px 22px 16px}
 
   .md-head{display:flex; gap:18px; align-items:flex-start; margin-bottom:14px;}
-  .md-art{width:180px; height:180px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0}
+  .md-art{width:220px; height:220px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0}
   .md-art img{width:100%; height:100%; object-fit:cover; background:#ddd}
   .md-info{min-width:0; flex:1}
   .md-title{font-size:24px; font-weight:800; margin:2px 0 6px 0}
-  .md-sub{color:var(--muted); font-size:14px; margin:0 0 10px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .md-actions{display:flex; gap:8px; flex-wrap:wrap}
-  .pill{display:inline-block; padding:8px 12px; border:1px solid var(--hair); background:var(--tile); border-radius:999px; font-size:14px}
-  .pill.accent{border-color:var(--red); background:var(--red); color:#fff}
+  .md-artist{ color: var(--red); font-size:16px; font-weight:700; margin:2px 0 10px 0; }
+  .md-lines{ margin:0 0 12px 0; }
+  .md-lines .line{ font-size:14px; color:var(--text); margin:4px 0; }
+  .md-lines .muted{ color:var(--muted); }
+
+  .md-actions{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 6px 0}
+  .pill{display:inline-block; padding:8px 12px; border:1px solid var(--hair); background:var(--tile); border-radius:999px; font-size:14px; user-select:none}
+  .pill.accent{border-color:var(--red); background:var(--red); color:#fff; cursor:pointer}
 
   .md-section{margin:14px 0 8px 0; font-weight:700}
   .tracks{list-style:none; padding:0; margin:0}
@@ -74,35 +90,23 @@
   .tr .no{width:22px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
   .tr .twrap{min-width:0; flex:1}
   .tr .name{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .tr .meta{font-size:12px; color:var(--muted); margin-top:2px}
   .tr .dur{width:44px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
-
-  .version-tag {
-  position: fixed;
-  top: 6px;
-  right: 10px;
-  font-size: 12px;
-  color: var(--muted);
-  opacity: 0.6;
-  user-select: none;
-  z-index: 50;
-}
 
   .md-link{display:inline-block;margin-top:12px;padding:8px 12px;border-radius:10px;border:1px solid var(--hair);background:var(--tile);text-decoration:none;color:var(--text)}
 
   @media (max-width:680px){
     .md-head{flex-direction:column; align-items:center; text-align:center}
-    .md-art{width:220px;height:220px}
-    .md-sub{white-space:normal}
+    .md-art{width:260px;height:260px}
     .md-actions{justify-content:center}
   }
 </style>
 </head>
 <body>
 
+<div class="version-tag">v1.04a</div>
+
 <header>
   <div class="title">Library</div>
-  <div class="version-tag">v1.04</div>
   <div class="search">
     <span class="mag">🔎</span>
     <input id="q" placeholder="Artists, albums, catalog #, year" autocomplete="off">
@@ -155,8 +159,8 @@
 
   /* ---------- STATE ---------- */
   var page=1, per=100, folder=0, total=0, pages=1, q="", view="grid";
-  var allItems = [];      // full, globally-sorted collection
-  var filteredItems = []; // q-filtered view of allItems
+  var allItems = [];
+  var filteredItems = [];
 
   var PER_KEY = 'discoapp_per_page';
 
@@ -495,7 +499,7 @@
   /* ---------- Details ---------- */
   function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
 
-  // ✅ Restored: used by card clicks & Random
+  // Restored, used by clicks & Random
   function showDetailsById(id){
     fetchRelease(id, function(err, data){
       if(err){ alert("Could not load details: " + err.message); return; }
@@ -504,78 +508,125 @@
   }
 
   function showDetails(release){
-    var body=document.getElementById("md-body");
+    var body = document.getElementById("md-body");
 
-    var title = release.title || "";
+    var title   = release.title || "";
     var artists = (release.artists && release.artists[0] ? release.artists[0].name : "");
-    var year = validYear(release.year);
-    var lbl  = (release.labels && release.labels[0] ? release.labels[0].name : "");
-    var cat  = (release.labels && release.labels[0] ? release.labels[0].catno : "");
-    var country = release.country || "";
-    var fmts = (release.formats && release.formats[0] ? release.formats[0].name : "");
+    var year    = validYear(release.year);
+    var art     = (release.images && release.images[0] ? release.images[0].uri : "");
+
+    var labelName = "", catno = "";
+    if (release.labels && release.labels[0]) {
+      labelName = release.labels[0].name || "";
+      catno     = release.labels[0].catno || "";
+    }
+
+    var formatName = (release.formats && release.formats[0] ? (release.formats[0].name || "") : "");
+    var country    = release.country || "";
+    var released   = release.released || (release.released_formatted || (year!=null? String(year) : ""));
+
     var genres = (release.genres ? release.genres.join(", ") : "");
     var styles = (release.styles ? release.styles.join(", ") : "");
-    var art = (release.images && release.images[0] ? release.images[0].uri : "");
+
     var masterYear = null;
-    if(release.master_id && MASTER_YEAR[release.master_id]!=null){
+    if (release.master_id && MASTER_YEAR[release.master_id] != null) {
       masterYear = validYear(MASTER_YEAR[release.master_id]);
     }
 
-    // Header block
+    function parseDurToSec(d){
+      if(!d) return 0;
+      var parts = String(d).trim().split(":").map(function(x){ return parseInt(x,10) || 0; });
+      if(parts.length === 1) return parts[0];
+      if(parts.length === 2) return parts[0]*60 + parts[1];
+      if(parts.length >= 3)  return parts[0]*3600 + parts[1]*60 + parts[2];
+      return 0;
+    }
+
+    var trackCount = 0, totalSec = 0;
+    if (release.tracklist && release.tracklist.length) {
+      for (var i=0;i<release.tracklist.length;i++){
+        var t = release.tracklist[i];
+        if (t && t.title) trackCount++;
+        if (t && t.duration) totalSec += parseDurToSec(t.duration);
+      }
+    }
+    var totalMinutes = Math.round(totalSec / 60);
+
+    // Phonographic copyright (optional)
+    var pCopyright = "";
+    if (release.companies && release.companies.length){
+      for (var c=0;c<release.companies.length;c++){
+        var co = release.companies[c];
+        var type = (co.entity_type_name || co.entity_type || "").toLowerCase();
+        if (type.indexOf("phonographic") !== -1){
+          var name = co.name || "";
+          var yr   = release.year ? release.year : "";
+          pCopyright = "℗ " + (yr ? (yr + " ") : "") + name;
+          break;
+        }
+      }
+    }
+    if (!pCopyright && release.copyright) {
+      pCopyright = "℗ " + release.copyright;
+    }
+
     var h = '';
     h += '<div class="md-head">';
     h += '  <div class="md-art"><img alt="" src="'+(art||'')+'"></div>';
     h += '  <div class="md-info">';
     h += '    <div class="md-title" id="md-album-title">'+escapeHtml(title)+'</div>';
-    var sub = escapeHtml(artists);
-    if(year!=null) sub += ' • '+year;
-    h += '    <div class="md-sub">'+sub+'</div>';
-    h += '    <div class="md-actions">';
-    h += '      <span class="pill accent">Play</span>';
-    h += '      <span class="pill">Shuffle</span>';
-    if(lbl || cat || country){
-      var bits = [];
-      if(lbl) bits.push(escapeHtml(lbl));
-      if(cat) bits.push(escapeHtml(cat));
-      if(country) bits.push(escapeHtml(country));
-      h += '      <span class="pill">'+bits.join(' • ')+'</span>';
-    }
-    if(masterYear!=null){ h += '      <span class="pill">Master: '+masterYear+'</span>'; }
-    if(fmts){ h += '      <span class="pill">'+escapeHtml(fmts)+'</span>'; }
+    if (artists) h += '    <div class="md-artist">'+escapeHtml(artists)+'</div>';
+
+    h += '    <div class="md-lines">';
+    var lineLabel = (labelName || catno) ? (escapeHtml(labelName) + (catno ? (" – " + escapeHtml(catno)) : "")) : "-";
+    h += '      <div class="line"><span class="muted">Label</span> — '+ (lineLabel || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Format</span> — '+ (formatName || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Country</span> — '+ (country || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Released</span> — '+ (released || (year!=null?year:"-")) +'</div>';
+    h += '      <div class="line"><span class="muted">Genre</span> — '+ (genres || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Style</span> — '+ (styles || "-") +'</div>';
     h += '    </div>';
+
+    h += '    <div class="md-actions">';
+    h += '      <span class="pill accent" id="pill-random">Random</span>';
+    if (release.uri){
+      h += '      <a class="pill accent" id="pill-discogs" href="'+release.uri+'" target="_blank" rel="noopener">View on Discogs ↗</a>';
+    }
+    h += '    </div>';
+
     h += '  </div>';
     h += '</div>';
 
-    // Tracklist
-    if(release.tracklist && release.tracklist.length){
+    if (release.tracklist && release.tracklist.length){
       h += '<div class="md-section">Tracklist</div>';
       h += '<ul class="tracks">';
-      for(var i=0;i<release.tracklist.length;i++){
-        var t = release.tracklist[i];
-        var nm = t.title || "";
-        var pos = t.position || (i+1);
-        var dur = t.duration || "";
+      for (var i2=0;i2<release.tracklist.length;i2++){
+        var tt = release.tracklist[i2] || {};
+        var nm = tt.title || "";
+        var pos = tt.position || (i2+1);
+        var dur = tt.duration || "";
         h += '<li class="tr">';
         h += ' <div class="no">'+escapeHtml(String(pos))+'</div>';
-        h += ' <div class="twrap"><div class="name">'+escapeHtml(nm)+'</div>';
-        // optional second line for styles/genres on first row to hint Apple layout
-        h += '</div>';
+        h += ' <div class="twrap"><div class="name">'+escapeHtml(nm)+'</div></div>';
         h += ' <div class="dur">'+escapeHtml(dur)+'</div>';
         h += '</li>';
       }
       h += '</ul>';
     }
 
-    // Genres / styles + Discogs link
-    if(genres || styles){
-      h += '<div class="md-section">Info</div>';
-      if(genres) h += '<div class="s">Genres: '+escapeHtml(genres)+'</div>';
-      if(styles) h += '<div class="s">Styles: '+escapeHtml(styles)+'</div>';
+    h += '<div class="md-section">Details</div>';
+    h += '<div class="s"><span class="muted">Master release date</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
+    var songsLine = (trackCount ? (trackCount + ' song' + (trackCount>1?'s':'') + (totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
+    h += '<div class="s"><span class="muted">Length</span>: ' + songsLine + '</div>';
+    if (pCopyright){
+      h += '<div class="s"><span class="muted">Phonographic copyright</span>: ' + pCopyright + '</div>';
     }
-    if(release.uri){ h += '<a class="md-link" target="_blank" rel="noopener" href="'+release.uri+'">View on Discogs</a>'; }
 
     body.innerHTML = h;
     openModal();
+
+    var pr = document.getElementById("pill-random");
+    if (pr) pr.addEventListener("click", function(){ openRandom(); });
   }
 
   /* ---------- Controls ---------- */
@@ -599,7 +650,6 @@
     applyFilterAndPaginate();
   });
 
-  // Close sheet (tap backdrop or Esc)
   document.getElementById("modal").addEventListener("click", function(e){ if(e.target && e.target.id==="modal") closeModal(); });
   document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
 
@@ -609,5 +659,3 @@
 </script>
 </body>
 </html>
-
-
