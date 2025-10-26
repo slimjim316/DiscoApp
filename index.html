@@ -52,7 +52,7 @@
   .toolbar{ position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--hair);
     display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; }
   .group{display:flex; gap:8px; align-items:center}
-  .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer; text-decoration:none; font-weight:600; } /* bolder label */
+  .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer; text-decoration:none; font-weight:600; }
   .btn:disabled{opacity:.5; cursor:not-allowed}
   .accent{border-color:var(--red); color:#fff; background:var(--red)}
   .select{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 28px 8px 12px; border-radius:10px; font-size:15px; cursor:pointer; appearance:none;
@@ -64,23 +64,21 @@
   #detailPage{ display:none; min-height:100vh; }
   .detail-header{ position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--hair); z-index:9; padding:8px 12px; }
   .detail-topbar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .detail-left{ display:flex; gap:8px; align-items:center; } /* Back + Random live here */
+  .detail-left{ display:flex; gap:8px; align-items:center; }
 
   .detail-body{ padding:14px 16px 90px 16px; max-width:980px; margin:0 auto; }
   .md-head{display:flex; gap:18px; align-items:flex-start; margin-bottom:14px;}
   .md-art{ width:220px; height:220px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0 }
   .md-art img{width:100%; height:100%; object-fit:cover; background:#ddd}
   .md-info{min-width:0; flex:1}
-  .md-title{font-size:24px; font-weight:600; margin:2px 0 6px 0}      /* toned down */
-  .md-artist{ color: var(--red); font-size:24px; font-weight:600; margin:2px 0 10px 0; } /* semibold */
+  .md-title{font-size:24px; font-weight:600; margin:2px 0 6px 0}
+  .md-artist{ color: var(--red); font-size:24px; font-weight:600; margin:2px 0 10px 0; }
 
   .md-lines{ margin:0 0 12px 0; }
   .md-lines .line{ font-size:14px; color:var(--text); margin:4px 0; }
   .md-lines .muted{ color:var(--muted); }
 
-  .md-actions{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 6px 0}
-  .pill{display:inline-block; padding:8px 12px; border:1px solid var(--hair); background:var(--tile); border-radius:10px; font-size:14px; user-select:none; text-decoration:none; font-weight:600; } /* match buttons */
-
+  /* Tracklist */
   .tracks{list-style:none; padding:0; margin:0}
   .tr{display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--hair)}
   .tr:last-child{ border-bottom:0 }
@@ -89,19 +87,20 @@
   .tr .name{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tr .dur{width:44px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
 
+  /* Footer + deep link */
+  .detail-foot{ font-size:16px; margin-top:4px; }       /* match deep-link size */
   .deep-link{ display:inline-block; margin-top:12px; color:var(--red); text-decoration:none; font-size:16px; }
   .deep-link:hover{ text-decoration:underline; }
 
   @media (max-width:680px){
     .md-head{flex-direction:column; align-items:center; text-align:center}
     .md-art{width:60%; height:auto} /* height made square via JS */
-    .md-actions{justify-content:center}
   }
 </style>
 </head>
 <body>
 
-<div class="version-tag">v1.04e</div>
+<div class="version-tag">v1.04f</div>
 
 <!-- ===== LIST PAGE ===== -->
 <div id="listPage">
@@ -612,10 +611,10 @@
       pCopyright = "℗ " + release.copyright;
     }
 
-    // Build body (no Discogs pill; link goes at the end)
+    // Build body
     var h = '';
     h += '<div class="md-head" id="md-head-block">';
-    h += '  <div class="md-art" id="md-art"><img alt="" src="'+(art||'')+'"></div>';
+    h += '  <div class="md-art" id="md-art"><img id="md-art-img" alt="" src="'+(art||'')+'"></div>';
     h += '  <div class="md-info" id="md-info">';
     h += '    <div class="md-title" id="md-album-title">'+escapeHtml(title)+'</div>';
     if (artists) h += '    <div class="md-artist" id="md-artist">'+escapeHtml(artists)+'</div>';
@@ -630,7 +629,6 @@
     h += '      <div class="line"><span class="muted">Style</span> '   + (styles || "-") +'</div>';
     h += '    </div>';
 
-    h += '    <div class="md-actions" id="md-actions"></div>'; // pills removed in 1.04e
     h += '  </div>';
     h += '</div>';
 
@@ -650,41 +648,45 @@
       h += '</ul>';
     }
 
-    // Footer lines (no headings)
-    h += '<div class="s"><span class="muted">Master release</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
+    // Footer lines + deep link
+    h += '<div class="detail-foot"><span class="muted">Master release</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
     var songsLine = (trackCount ? (trackCount + ' song' + (trackCount>1?'s':'') + (totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
-    h += '<div class="s">' + songsLine + '</div>';
-    if (pCopyright){ h += '<div class="s">' + escapeHtml(pCopyright) + '</div>'; }
+    h += '<div class="detail-foot">' + songsLine + '</div>';
+    if (pCopyright){ h += '<div class="detail-foot">' + escapeHtml(pCopyright) + '</div>'; }
     if (release.uri){ h += '<a class="deep-link" target="_blank" rel="noopener" href="'+release.uri+'">Open in Discogs ↗</a>'; }
 
     body.innerHTML = h;
 
-    // Size the art to match info block (desktop) or stay square at 60% width (stacked)
-    sizeArt(); window.addEventListener('resize', sizeArt);
-  }
+    // Size art reliably: after paint, after image load, and with small delays
+    function sizeArt(){
+      var head  = document.getElementById('md-head-block');
+      var art   = document.getElementById('md-art');
+      var info  = document.getElementById('md-info');
+      var title = document.getElementById('md-album-title');
+      if(!head || !art || !info || !title) return;
 
-  /* Make art match info height (desktop) or square @ 60% width (stacked) */
-  function sizeArt(){
-    var head = document.getElementById('md-head-block');
-    var art  = document.getElementById('md-art');
-    var info = document.getElementById('md-info');
-    var title= document.getElementById('md-album-title');
-    var acts = document.getElementById('md-actions');
-    if(!head || !art || !info || !title || !acts) return;
-
-    var stacked = head && (window.getComputedStyle(head).flexDirection === 'column');
-
-    if(stacked){
-      var w = art.clientWidth;
-      if(w>0){ art.style.height = w + 'px'; }
-    }else{
-      var baseTop = info.getBoundingClientRect().top;
-      var titleTop = title.getBoundingClientRect().top - baseTop;
-      var actsBottom = (acts.getBoundingClientRect().top - baseTop) + acts.offsetHeight;
-      var h = Math.max(160, Math.round(actsBottom - titleTop));
-      art.style.height = h + 'px';
-      art.style.width  = h + 'px';
+      var stacked = (window.getComputedStyle(head).flexDirection === 'column');
+      if(stacked){
+        var w = art.clientWidth;
+        if(w>0){ art.style.height = w + 'px'; }
+      }else{
+        var baseTop   = info.getBoundingClientRect().top;
+        var titleTop  = Math.max(0, document.getElementById('md-album-title').getBoundingClientRect().top - baseTop);
+        var infoH     = Math.max(info.scrollHeight, info.getBoundingClientRect().height);
+        var h         = Math.max(160, Math.round(infoH - titleTop));
+        art.style.height = h + 'px';
+        art.style.width  = h + 'px';
+      }
     }
+    // run sizing a few times to cover fonts/image load
+    requestAnimationFrame(sizeArt);
+    setTimeout(sizeArt, 50);
+    setTimeout(sizeArt, 250);
+    var imgEl = document.getElementById('md-art-img');
+    if(imgEl){ imgEl.onload = sizeArt; }
+
+    // also on resize
+    window.addEventListener('resize', sizeArt);
   }
 
   /* ---------- Controls ---------- */
