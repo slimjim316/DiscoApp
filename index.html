@@ -87,6 +87,7 @@
 
   .tracks{list-style:none; padding:0; margin:0}
   .tr{display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--hair)}
+  .tr:last-child{ border-bottom:0 } /* no line after last track */
   .tr .no{width:22px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
   .tr .twrap{min-width:0; flex:1}
   .tr .name{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -101,7 +102,7 @@
 </head>
 <body>
 
-<div class="version-tag">v1.04b</div>
+<div class="version-tag">v1.04c</div>
 
 <header>
   <div class="title">Library</div>
@@ -197,6 +198,7 @@
   function openModal(){ var m=document.getElementById("modal"); m.className="modal"; m.setAttribute("aria-hidden","false"); }
   function closeModal(){ var m=document.getElementById("modal"); m.className="modal hidden"; m.setAttribute("aria-hidden","true"); document.getElementById("md-body").innerHTML=""; }
   function validYear(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; }
+  function firstYearFromString(s){ var m = /(\d{4})/.exec(String(s||"")); return m ? validYear(+m[1]) : null; }
 
   /* ---------- Master-year cache ---------- */
   var MASTER_YEAR = {};
@@ -494,6 +496,27 @@
     document.getElementById("toggle").textContent = (view==="grid") ? "List View" : "Grid View";
   }
 
+  /* ---------- Helper: aggregate formats into a single string ---------- */
+  function formatFormats(arr){
+    if(!arr || !arr.length) return "";
+    var out=[], seen={};
+    for(var i=0;i<arr.length;i++){
+      var f=arr[i]||{};
+      if(f.name){ var n=String(f.name); if(!seen[n]){ out.push(n); seen[n]=1; } }
+      if(f.descriptions && f.descriptions.length){
+        for(var j=0;j<f.descriptions.length;j++){
+          var d=String(f.descriptions[j]);
+          if(!seen[d]){ out.push(d); seen[d]=1; }
+        }
+      }
+      if(f.text){
+        var t=String(f.text);
+        if(!seen[t]){ out.push(t); seen[t]=1; }
+      }
+    }
+    return out.join(", ");
+  }
+
   /* ---------- Details ---------- */
   function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
 
@@ -518,9 +541,12 @@
       catno     = release.labels[0].catno || "";
     }
 
-    var formatName = (release.formats && release.formats[0] ? (release.formats[0].name || "") : "");
+    // Formats: aggregate all
+    var formatFull = formatFormats(release.formats);
+
     var country    = release.country || "";
-    var released   = release.released || (release.released_formatted || (year!=null? String(year) : ""));
+    var rawRel     = release.released || release.released_formatted || "";
+    var releasedYr = firstYearFromString(rawRel) || (year!=null? year : null);
 
     var genres = (release.genres ? release.genres.join(", ") : "");
     var styles = (release.styles ? release.styles.join(", ") : "");
@@ -549,7 +575,7 @@
     }
     var totalMinutes = Math.round(totalSec / 60);
 
-    // Phonographic copyright (optional) -> show as "(p) ..."
+    // Phonographic copyright (optional) -> show as "℗ ..."
     var pCopyright = "";
     if (release.companies && release.companies.length){
       for (var c=0;c<release.companies.length;c++){
@@ -557,14 +583,14 @@
         var type = (co.entity_type_name || co.entity_type || "").toLowerCase();
         if (type.indexOf("phonographic") !== -1){
           var name = co.name || "";
-          var yr   = release.year ? release.year : "";
-          pCopyright = "(p) " + (yr ? (yr + " ") : "") + name;
+          var yr   = releasedYr ? releasedYr : (year || "");
+          pCopyright = "℗ " + (yr ? (yr + " ") : "") + name;
           break;
         }
       }
     }
     if (!pCopyright && release.copyright) {
-      pCopyright = "(p) " + release.copyright;
+      pCopyright = "℗ " + release.copyright;
     }
 
     var h = '';
@@ -577,9 +603,9 @@
     h += '    <div class="md-lines">';
     var lineLabel = (labelName || catno) ? (escapeHtml(labelName) + (catno ? (" – " + escapeHtml(catno)) : "")) : "-";
     h += '      <div class="line"><span class="muted">Label</span> '   + (lineLabel || "-") +'</div>';
-    h += '      <div class="line"><span class="muted">Format</span> '  + (formatName || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Format</span> '  + (escapeHtml(formatFull || "")) +'</div>';
     h += '      <div class="line"><span class="muted">Country</span> ' + (country || "-") +'</div>';
-    h += '      <div class="line"><span class="muted">Released</span> '+ (released || (year!=null?year:"-")) +'</div>';
+    h += '      <div class="line"><span class="muted">Released</span> '+ (releasedYr!=null ? releasedYr : "-") +'</div>';
     h += '      <div class="line"><span class="muted">Genre</span> '   + (genres || "-") +'</div>';
     h += '      <div class="line"><span class="muted">Style</span> '   + (styles || "-") +'</div>';
     h += '    </div>';
@@ -614,7 +640,7 @@
     h += '<div class="s"><span class="muted">Master release</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
     var songsLine = (trackCount ? (trackCount + ' song' + (trackCount>1?'s':'') + (totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
     h += '<div class="s">' + songsLine + '</div>';
-    if (pCopyright){ h += '<div class="s">' + pCopyright + '</div>'; }
+    if (pCopyright){ h += '<div class="s">' + escapeHtml(pCopyright) + '</div>'; }
 
     body.innerHTML = h;
     openModal();
