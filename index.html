@@ -32,6 +32,7 @@
   @media (max-width:820px) { .card{width:33.3333%} }
   @media (max-width:600px) { .card{width:50%} }
   @media (max-width:380px) { .card{width:100%} }
+
   .list{list-style:none; padding:0; margin:0; display:none;}
   .row{display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid var(--hair); cursor:pointer}
   .thumbWrap{position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden; background:#ddd; margin-right:12px}
@@ -39,25 +40,51 @@
   .metaL{min-width:0}
   .tL{font-weight:700;font-size:16px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sL{margin-top:2px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
   .toolbar{ position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--hair);
     display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; }
   .group{display:flex; gap:8px; align-items:center}
   .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer }
   .btn:disabled{opacity:.5; cursor:not-allowed}
   .accent{border-color:var(--red); color:#fff; background:var(--red)}
-  .select{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 28px 8px 12px; border-radius:10px; font-size:15px; cursor:pointer; appearance:none; background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%); background-position:calc(100% - 18px) 16px, calc(100% - 12px) 16px; background-size:6px 6px; background-repeat:no-repeat;}
-  .modal{position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,35); display:flex; align-items:flex-end; justify-content:center}
+  .select{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 28px 8px 12px; border-radius:10px; font-size:15px; cursor:pointer; appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%);
+    background-position:calc(100% - 18px) 16px, calc(100% - 12px) 16px; background-size:6px 6px; background-repeat:no-repeat;}
+
+  /* ===== Details sheet (Apple Music-y) ===== */
+  .modal{position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,.35); display:flex; align-items:flex-end; justify-content:center}
   .modal.hidden{display:none}
-  .sheet{ width:100%; max-width:720px; background:var(--bg); border-radius:16px 16px 0 0; border:1px solid var(--hair); border-bottom:0; max-height:90vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,15); }
+  .sheet{ width:100%; max-width:980px; background:var(--bg); border-radius:16px 16px 0 0; border:1px solid var(--hair); border-bottom:0; max-height:90vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,.15); }
   .drag{width:48px;height:5px;border-radius:999px;background:var(--hair);margin:8px auto}
-  .hero{width:100%; max-height:360px; object-fit:cover; border-bottom:1px solid var(--hair); background:#ddd}
-  #md-body{padding:14px 16px 18px 16px}
-  #md-body h2{margin:4px 0 6px 0;font-size:20px}
-  .meta-row{color:var(--muted);margin:4px 0}
-  .section{margin:12px 0 6px 0;font-weight:700}
-  .tracks{margin:6px 0 0 0;padding-left:18px}
-  .tracks li{margin:3px 0}
-  .link{display:inline-block;margin-top:10px;padding:8px 12px;border-radius:10px;border:1px solid var(--hair);background:var(--tile);text-decoration:none;color:var(--text)}
+  #md-body{padding:14px 16px 22px 16px}
+
+  .md-head{display:flex; gap:18px; align-items:flex-start; margin-bottom:14px;}
+  .md-art{width:180px; height:180px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0}
+  .md-art img{width:100%; height:100%; object-fit:cover; background:#ddd}
+  .md-info{min-width:0; flex:1}
+  .md-title{font-size:24px; font-weight:800; margin:2px 0 6px 0}
+  .md-sub{color:var(--muted); font-size:14px; margin:0 0 10px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .md-actions{display:flex; gap:8px; flex-wrap:wrap}
+  .pill{display:inline-block; padding:8px 12px; border:1px solid var(--hair); background:var(--tile); border-radius:999px; font-size:14px}
+  .pill.accent{border-color:var(--red); background:var(--red); color:#fff}
+
+  .md-section{margin:14px 0 8px 0; font-weight:700}
+  .tracks{list-style:none; padding:0; margin:0}
+  .tr{display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--hair)}
+  .tr .no{width:22px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
+  .tr .twrap{min-width:0; flex:1}
+  .tr .name{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tr .meta{font-size:12px; color:var(--muted); margin-top:2px}
+  .tr .dur{width:44px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
+
+  .md-link{display:inline-block;margin-top:12px;padding:8px 12px;border-radius:10px;border:1px solid var(--hair);background:var(--tile);text-decoration:none;color:var(--text)}
+
+  @media (max-width:680px){
+    .md-head{flex-direction:column; align-items:center; text-align:center}
+    .md-art{width:220px;height:220px}
+    .md-sub{white-space:normal}
+    .md-actions{justify-content:center}
+  }
 </style>
 </head>
 <body>
@@ -100,10 +127,10 @@
   </div>
 </div>
 
+<!-- Details sheet -->
 <div id="modal" class="modal hidden" aria-hidden="true">
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="md-title">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="md-album-title">
     <div class="drag"></div>
-    <img id="md-hero" class="hero" alt="">
     <div id="md-body"></div>
   </div>
 </div>
@@ -119,7 +146,6 @@
   var allItems = [];      // full, globally-sorted collection
   var filteredItems = []; // q-filtered view of allItems
 
-  // Persisted settings
   var PER_KEY = 'discoapp_per_page';
 
   (function restorePer(){
@@ -155,13 +181,8 @@
   function isArray(x){ return Object.prototype.toString.call(x) === '[object Array]'; }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
   function openModal(){ var m=document.getElementById("modal"); m.className="modal"; m.setAttribute("aria-hidden","false"); }
-  function closeModal(){ var m=document.getElementById("modal"); m.className="modal hidden"; m.setAttribute("aria-hidden","true");
-    document.getElementById("md-body").innerHTML=""; document.getElementById("md-hero").src=""; }
-
-  function validYear(y){
-    var n = parseInt(y, 10);
-    return (n>=1000 && n<=3000) ? n : null;
-  }
+  function closeModal(){ var m=document.getElementById("modal"); m.className="modal hidden"; m.setAttribute("aria-hidden","true"); document.getElementById("md-body").innerHTML=""; }
+  function validYear(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; }
 
   /* ---------- Master-year cache ---------- */
   var MASTER_YEAR = {};
@@ -171,11 +192,7 @@
   var MASTER_INFLIGHT = {};
 
   /* ---------- Sorting helpers ---------- */
-  function normalizeArtist(name){
-    if(!name) return "";
-    var s = String(name).replace(/^\s*the\s+/i, "");
-    return s.toLowerCase();
-  }
+  function normalizeArtist(name){ if(!name) return ""; var s=String(name).replace(/^\s*the\s+/i,""); return s.toLowerCase(); }
   function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
 
   function parseYearFromMaster(data){
@@ -189,14 +206,7 @@
 
   /* ---------- Queue ---------- */
   var CONCURRENCY = 6, inflight = 0, queue = [], tickTimer=null;
-
-  function runQueue(){
-    while(inflight<CONCURRENCY && queue.length){
-      var job = queue.shift();
-      inflight++;
-      job(function(){ inflight--; updateProgress(); runQueue(); });
-    }
-  }
+  function runQueue(){ while(inflight<CONCURRENCY && queue.length){ var job=queue.shift(); inflight++; job(function(){ inflight--; updateProgress(); runQueue(); }); } }
 
   function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
@@ -204,81 +214,53 @@
     if(MASTER_INFLIGHT[masterId]){ cb(null,null); return; }
     MASTER_INFLIGHT[masterId] = true;
 
-    var urls = [];
-    if(masterUrl) urls.push(masterUrl);
+    var urls = []; if(masterUrl) urls.push(masterUrl);
     urls.push("https://api.discogs.com/masters/" + encodeURIComponent(masterId));
 
     queue.push(function(done){
       var urlIdx=0, attempt=0;
       function tryNext(){
-        if(urlIdx>=urls.length){
-          delete MASTER_INFLIGHT[masterId];
-          done(); cb(null,null); return;
-        }
-        var u = urls[urlIdx];
+        if(urlIdx>=urls.length){ delete MASTER_INFLIGHT[masterId]; done(); cb(null,null); return; }
+        var u=urls[urlIdx];
         get(u, function(err, data){
           var y = !err ? parseYearFromMaster(data) : null;
           if(!err && y!=null){
             MASTER_YEAR[masterId]=y; saveMasterYearCache();
-            delete MASTER_INFLIGHT[masterId]; done(); cb(null, y);
+            delete MASTER_INFLIGHT[masterId]; done(); cb(null,y);
           }else{
-            attempt++;
-            if(attempt<3){ setTimeout(tryNext, attempt*600); }
-            else { urlIdx++; attempt=0; tryNext(); }
+            attempt++; if(attempt<3){ setTimeout(tryNext, attempt*600); } else { urlIdx++; attempt=0; tryNext(); }
           }
         });
       }
       tryNext();
     });
-    updateProgress();
-    runQueue();
+    updateProgress(); runQueue();
   }
 
-  function wantMasters(items){
-    var list=[], seen={};
-    for(var i=0;i<items.length;i++){
-      var it=items[i], m=it.master_id;
-      if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:it.master_url}); }
-    }
-    return list;
-  }
+  function wantMasters(items){ var list=[], seen={}; for(var i=0;i<items.length;i++){ var m=items[i].master_id; if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:items[i].master_url}); } } return list; }
 
   function fillMasterYears(items, onDone){
-    var all = wantMasters(items);
-    var pending=[], i;
-    for(i=0;i<all.length;i++){
-      var m=all[i].id;
-      if(!MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m]) pending.push(all[i]);
-    }
+    var all=wantMasters(items), pending=[], i;
+    for(i=0;i<all.length;i++){ var m=all[i].id; if(!MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m]) pending.push(all[i]); }
     if(!pending.length){ updateProgress(); if(onDone) onDone(); return; }
-
     var left=pending.length;
-    for(i=0;i<pending.length;i++){
-      (function(mid, murl){
-        fetchMaster(mid, murl, function(){ left--; if(left===0){ updateProgress(); if(onDone) onDone(); }});
-      })(pending[i].id, pending[i].url);
-    }
+    for(i=0;i<pending.length;i++){ (function(mid,murl){ fetchMaster(mid,murl,function(){ left--; if(left===0){ updateProgress(); if(onDone) onDone(); } }); })(pending[i].id, pending[i].url); }
     updateProgress();
   }
 
   function cmpItems(a,b){
     if(a.normArtist < b.normArtist) return -1;
     if(a.normArtist > b.normArtist) return 1;
-
     if(a.isVarious && b.isVarious){
       var at=(a.title||"").toLowerCase(), bt=(b.title||"").toLowerCase();
       if(at<bt) return -1; if(at>bt) return 1; return 0;
     }
-
     var am = (a.master_year!=null ? a.master_year : (a.year!=null ? a.year : null));
     var bm = (b.master_year!=null ? b.master_year : (b.year!=null ? b.year : null));
     if(am!=null && bm!=null && am!==bm) return am - bm;
-
     if(a.master_id && b.master_id && a.master_id===b.master_id){
-      var ar=a.year||0, br=b.year||0;
-      if(ar!==br) return ar - br;
+      var ar=a.year||0, br=b.year||0; if(ar!==br) return ar - br;
     }
-
     var aT=(a.title||"").toLowerCase(), bT=(b.title||"").toLowerCase();
     if(aT<bT) return -1; if(aT>bT) return 1; return 0;
   }
@@ -291,14 +273,12 @@
 
     var all = wantMasters(allItems);
     var totalMasters = all.length;
-    var resolved=0, i;
-    for(i=0;i<all.length;i++){ if(MASTER_YEAR.hasOwnProperty(all[i].id)) resolved++; }
+    var resolved=0, i; for(i=0;i<all.length;i++){ if(MASTER_YEAR.hasOwnProperty(all[i].id)) resolved++; }
     var active=0; for(var k in MASTER_INFLIGHT){ if(MASTER_INFLIGHT.hasOwnProperty(k)) active++; }
 
     var pct = totalMasters ? Math.round((resolved/totalMasters)*100) : 0;
     progressBar.style.width = pct + "%";
 
-    // Hide both the text and the bar when complete (and no requests in flight)
     if(totalMasters && pct===100 && !active){
       progressWrap.style.display = "none";
       progressTxt.style.display = "none";
@@ -309,21 +289,7 @@
     }
   }
 
-  function ensureFetchLoop(){
-    if(tickTimer) return;
-    tickTimer = setInterval(function(){
-      fillMasterYears(allItems, function(){});
-      updateProgress();
-      var all = wantMasters(allItems), done=true, i;
-      for(i=0;i<all.length;i++){ if(!MASTER_YEAR.hasOwnProperty(all[i].id)) { done=false; break; } }
-      if(done && !Object.keys(MASTER_INFLIGHT).length){
-        clearInterval(tickTimer); tickTimer=null;
-      }
-    }, 4000);
-  }
-
   /* ---------- Client-side load & paging ---------- */
-
   function mapReleases(arr){
     return arr.map(function(r){
       var info = r && r.basic_information ? r.basic_information : r || {};
@@ -412,7 +378,17 @@
       if(typeof cb==="function") cb();
     });
 
-    ensureFetchLoop();
+    if(!tickTimer){
+      tickTimer = setInterval(function(){
+        fillMasterYears(allItems, function(){});
+        updateProgress();
+        var all = wantMasters(allItems), done=true, i;
+        for(i=0;i<all.length;i++){ if(!MASTER_YEAR.hasOwnProperty(all[i].id)) { done=false; break; } }
+        if(done && !Object.keys(MASTER_INFLIGHT).length){
+          clearInterval(tickTimer); tickTimer=null;
+        }
+      }, 4000);
+    }
   }
 
   function matches(it, needle){
@@ -507,41 +483,87 @@
   /* ---------- Details ---------- */
   function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
 
-  function showDetails(release){
-    var body=document.getElementById("md-body"), hero=document.getElementById("md-hero");
-    var title=release.title||"", artists=(release.artists&&release.artists[0]?release.artists[0].name:"");
-    var year=validYear(release.year); // null if invalid/0
-    var lbl=(release.labels&&release.labels[0]?release.labels[0].name:"");
-    var cat=(release.labels&&release.labels[0]?release.labels[0].catno:""), country=release.country||"";
-    var fmts=(release.formats&&release.formats[0]?release.formats[0].name:"");
-    var genres=(release.genres?release.genres.join(", "):"");
-    var styles=(release.styles?release.styles.join(", "):"");
-    var notes=release.notes||"";
-    var art=(release.images&&release.images[0]?release.images[0].uri:"");
-    hero.src = art || "";
+  // ✅ Restored: used by card clicks & Random
+  function showDetailsById(id){
+    fetchRelease(id, function(err, data){
+      if(err){ alert("Could not load details: " + err.message); return; }
+      showDetails(data);
+    });
+  }
 
-    var html='';
-    html+='<h2 id="md-title">'+escapeHtml(title)+'</h2>';
-    html+='<div class="meta-row">'+escapeHtml(artists)+' '+(year!=null?("• "+year):"")+'</div>';
-    html+='<div class="meta-row">'+(lbl?escapeHtml(lbl):"")+(cat?" • "+escapeHtml(cat):"")+(country?" • "+escapeHtml(country):"")+'</div>';
+  function showDetails(release){
+    var body=document.getElementById("md-body");
+
+    var title = release.title || "";
+    var artists = (release.artists && release.artists[0] ? release.artists[0].name : "");
+    var year = validYear(release.year);
+    var lbl  = (release.labels && release.labels[0] ? release.labels[0].name : "");
+    var cat  = (release.labels && release.labels[0] ? release.labels[0].catno : "");
+    var country = release.country || "";
+    var fmts = (release.formats && release.formats[0] ? release.formats[0].name : "");
+    var genres = (release.genres ? release.genres.join(", ") : "");
+    var styles = (release.styles ? release.styles.join(", ") : "");
+    var art = (release.images && release.images[0] ? release.images[0].uri : "");
+    var masterYear = null;
     if(release.master_id && MASTER_YEAR[release.master_id]!=null){
-      var my = validYear(MASTER_YEAR[release.master_id]);
-      if(my!=null) html+='<div class="meta-row">Master released: '+my+'</div>';
+      masterYear = validYear(MASTER_YEAR[release.master_id]);
     }
-    if(fmts)   html+='<div class="meta-row">Format: '+escapeHtml(fmts)+'</div>';
-    if(genres) html+='<div class="meta-row">Genres: '+escapeHtml(genres)+'</div>';
-    if(styles) html+='<div class="meta-row">Styles: '+escapeHtml(styles)+'</div>';
-    if(release.tracklist&&release.tracklist.length){
-      html+='<div class="section">Tracklist</div><ol class="tracks">';
+
+    // Header block
+    var h = '';
+    h += '<div class="md-head">';
+    h += '  <div class="md-art"><img alt="" src="'+(art||'')+'"></div>';
+    h += '  <div class="md-info">';
+    h += '    <div class="md-title" id="md-album-title">'+escapeHtml(title)+'</div>';
+    var sub = escapeHtml(artists);
+    if(year!=null) sub += ' • '+year;
+    h += '    <div class="md-sub">'+sub+'</div>';
+    h += '    <div class="md-actions">';
+    h += '      <span class="pill accent">Play</span>';
+    h += '      <span class="pill">Shuffle</span>';
+    if(lbl || cat || country){
+      var bits = [];
+      if(lbl) bits.push(escapeHtml(lbl));
+      if(cat) bits.push(escapeHtml(cat));
+      if(country) bits.push(escapeHtml(country));
+      h += '      <span class="pill">'+bits.join(' • ')+'</span>';
+    }
+    if(masterYear!=null){ h += '      <span class="pill">Master: '+masterYear+'</span>'; }
+    if(fmts){ h += '      <span class="pill">'+escapeHtml(fmts)+'</span>'; }
+    h += '    </div>';
+    h += '  </div>';
+    h += '</div>';
+
+    // Tracklist
+    if(release.tracklist && release.tracklist.length){
+      h += '<div class="md-section">Tracklist</div>';
+      h += '<ul class="tracks">';
       for(var i=0;i<release.tracklist.length;i++){
-        var t=release.tracklist[i], nm=t.title||"", pos=t.position||"", dur=t.duration||"";
-        html+='<li>'+escapeHtml((pos?pos+" – ":"")+nm+(dur?" ("+dur+")":""))+'</li>';
+        var t = release.tracklist[i];
+        var nm = t.title || "";
+        var pos = t.position || (i+1);
+        var dur = t.duration || "";
+        h += '<li class="tr">';
+        h += ' <div class="no">'+escapeHtml(String(pos))+'</div>';
+        h += ' <div class="twrap"><div class="name">'+escapeHtml(nm)+'</div>';
+        // optional second line for styles/genres on first row to hint Apple layout
+        h += '</div>';
+        h += ' <div class="dur">'+escapeHtml(dur)+'</div>';
+        h += '</li>';
       }
-      html+='</ol>';
+      h += '</ul>';
     }
-    if(notes){ html+='<div class="section">Notes</div><div style="white-space:pre-wrap">'+escapeHtml(notes)+'</div>'; }
-    if(release.uri){ html+='<a class="link" target="_blank" rel="noopener" href="'+release.uri+'">View on Discogs</a>'; }
-    body.innerHTML = html; openModal();
+
+    // Genres / styles + Discogs link
+    if(genres || styles){
+      h += '<div class="md-section">Info</div>';
+      if(genres) h += '<div class="s">Genres: '+escapeHtml(genres)+'</div>';
+      if(styles) h += '<div class="s">Styles: '+escapeHtml(styles)+'</div>';
+    }
+    if(release.uri){ h += '<a class="md-link" target="_blank" rel="noopener" href="'+release.uri+'">View on Discogs</a>'; }
+
+    body.innerHTML = h;
+    openModal();
   }
 
   /* ---------- Controls ---------- */
@@ -565,7 +587,9 @@
     applyFilterAndPaginate();
   });
 
+  // Close sheet (tap backdrop or Esc)
   document.getElementById("modal").addEventListener("click", function(e){ if(e.target && e.target.id==="modal") closeModal(); });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
 
   /* ---------- Boot ---------- */
   fetchAllItems(function(){ applyFilterAndPaginate(); });
