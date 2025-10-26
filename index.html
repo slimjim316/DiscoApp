@@ -12,11 +12,7 @@
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
 
   /* Version tag */
-  .version-tag {
-    position: fixed; top: 6px; right: 10px;
-    font-size: 12px; color: var(--muted); opacity: .6;
-    user-select: none; z-index: 50;
-  }
+  .version-tag { position: fixed; top: 6px; right: 10px; font-size: 12px; color: var(--muted); opacity: .6; user-select: none; z-index: 50; }
 
   header{ position:sticky; top:0; z-index:10; background:var(--bg); padding:8px 12px 6px; border-bottom:1px solid var(--hair); }
   .title{font-size:28px;font-weight:700;margin:8px 2px 10px}
@@ -56,7 +52,7 @@
   .toolbar{ position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--hair);
     display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; }
   .group{display:flex; gap:8px; align-items:center}
-  .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer; text-decoration:none }
+  .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer; text-decoration:none; font-weight:600; } /* bolder label */
   .btn:disabled{opacity:.5; cursor:not-allowed}
   .accent{border-color:var(--red); color:#fff; background:var(--red)}
   .select{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 28px 8px 12px; border-radius:10px; font-size:15px; cursor:pointer; appearance:none;
@@ -68,23 +64,22 @@
   #detailPage{ display:none; min-height:100vh; }
   .detail-header{ position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--hair); z-index:9; padding:8px 12px; }
   .detail-topbar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .detail-title{ font-weight:700; font-size:18px; color:var(--muted); }
+  .detail-left{ display:flex; gap:8px; align-items:center; } /* Back + Random live here */
 
   .detail-body{ padding:14px 16px 90px 16px; max-width:980px; margin:0 auto; }
   .md-head{display:flex; gap:18px; align-items:flex-start; margin-bottom:14px;}
   .md-art{ width:220px; height:220px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0 }
   .md-art img{width:100%; height:100%; object-fit:cover; background:#ddd}
   .md-info{min-width:0; flex:1}
-  .md-title{font-size:24px; font-weight:800; margin:2px 0 6px 0}
-  .md-artist{ color: var(--red); font-size:24px; font-weight:800; margin:2px 0 10px 0; } /* same as title */
+  .md-title{font-size:24px; font-weight:600; margin:2px 0 6px 0}      /* toned down */
+  .md-artist{ color: var(--red); font-size:24px; font-weight:600; margin:2px 0 10px 0; } /* semibold */
 
   .md-lines{ margin:0 0 12px 0; }
   .md-lines .line{ font-size:14px; color:var(--text); margin:4px 0; }
   .md-lines .muted{ color:var(--muted); }
 
   .md-actions{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 6px 0}
-  .pill{display:inline-block; padding:8px 12px; border:1px solid var(--hair); background:var(--tile); border-radius:10px; font-size:14px; user-select:none; text-decoration:none}
-  .pill.accent{border-color:var(--red); background:var(--red); color:#fff; cursor:pointer}
+  .pill{display:inline-block; padding:8px 12px; border:1px solid var(--hair); background:var(--tile); border-radius:10px; font-size:14px; user-select:none; text-decoration:none; font-weight:600; } /* match buttons */
 
   .tracks{list-style:none; padding:0; margin:0}
   .tr{display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--hair)}
@@ -93,6 +88,9 @@
   .tr .twrap{min-width:0; flex:1}
   .tr .name{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tr .dur{width:44px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
+
+  .deep-link{ display:inline-block; margin-top:12px; color:var(--red); text-decoration:none; font-size:16px; }
+  .deep-link:hover{ text-decoration:underline; }
 
   @media (max-width:680px){
     .md-head{flex-direction:column; align-items:center; text-align:center}
@@ -103,7 +101,7 @@
 </head>
 <body>
 
-<div class="version-tag">v1.04d</div>
+<div class="version-tag">v1.04e</div>
 
 <!-- ===== LIST PAGE ===== -->
 <div id="listPage">
@@ -114,7 +112,7 @@
       <input id="q" placeholder="Artists, albums, catalog #, year" autocomplete="off">
     </div>
     <div class="info">
-      <span id="count">0 items</span>
+      <span id="count">0 of 0</span>
       <div class="info-right">
         <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
         <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
@@ -150,8 +148,11 @@
 <div id="detailPage" role="document" aria-live="polite">
   <div class="detail-header">
     <div class="detail-topbar">
-      <a id="backBtn" class="btn" href="#">◀︎ Back</a>
-      <div class="detail-title" id="detailTitle">Details</div>
+      <div class="detail-left">
+        <a id="backBtn" class="btn" href="#">◀︎ Back</a>
+        <button id="headerRandom" class="btn accent">🎲 Random</button>
+      </div>
+      <span></span>
       <span></span>
     </div>
   </div>
@@ -211,7 +212,6 @@
   var MASTER_YEAR = {};
   try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
   function saveMasterYearCache(){ try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){} }
-
   var MASTER_INFLIGHT = {};
 
   /* ---------- Sorting helpers ---------- */
@@ -594,7 +594,7 @@
     }
     var totalMinutes = Math.round(totalSec / 60);
 
-    // ℗
+    // ℗ phonographic copyright
     var pCopyright = "";
     if (release.companies && release.companies.length){
       for (var c=0;c<release.companies.length;c++){
@@ -612,7 +612,7 @@
       pCopyright = "℗ " + release.copyright;
     }
 
-    // Header & info
+    // Build body (no Discogs pill; link goes at the end)
     var h = '';
     h += '<div class="md-head" id="md-head-block">';
     h += '  <div class="md-art" id="md-art"><img alt="" src="'+(art||'')+'"></div>';
@@ -630,17 +630,10 @@
     h += '      <div class="line"><span class="muted">Style</span> '   + (styles || "-") +'</div>';
     h += '    </div>';
 
-    h += '    <div class="md-actions" id="md-actions">';
-    h += '      <span class="pill accent" id="pill-random">🎲 Random</span>';
-    if (release.uri){
-      h += '      <a class="pill accent" id="pill-discogs" href="'+release.uri+'" target="_blank" rel="noopener">View on Discogs ↗</a>';
-    }
-    h += '    </div>';
-
+    h += '    <div class="md-actions" id="md-actions"></div>'; // pills removed in 1.04e
     h += '  </div>';
     h += '</div>';
 
-    // Tracks
     if (release.tracklist && release.tracklist.length){
       h += '<ul class="tracks">';
       for (var i2=0;i2<release.tracklist.length;i2++){
@@ -657,24 +650,20 @@
       h += '</ul>';
     }
 
-    // Footer (no headings)
+    // Footer lines (no headings)
     h += '<div class="s"><span class="muted">Master release</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
     var songsLine = (trackCount ? (trackCount + ' song' + (trackCount>1?'s':'') + (totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
     h += '<div class="s">' + songsLine + '</div>';
     if (pCopyright){ h += '<div class="s">' + escapeHtml(pCopyright) + '</div>'; }
+    if (release.uri){ h += '<a class="deep-link" target="_blank" rel="noopener" href="'+release.uri+'">Open in Discogs ↗</a>'; }
 
-    document.getElementById("detailTitle").textContent = artists ? (artists + " — " + title) : title;
     body.innerHTML = h;
 
-    // Wire actions
-    var pr = document.getElementById("pill-random");
-    if (pr) pr.addEventListener("click", function(){ openRandom(true); }); // true => stay in details
-
-    // Size art (desktop match + mobile square)
+    // Size the art to match info block (desktop) or stay square at 60% width (stacked)
     sizeArt(); window.addEventListener('resize', sizeArt);
   }
 
-  /* Make art match the info column height (desktop) or square @ 60% width (stacked) */
+  /* Make art match info height (desktop) or square @ 60% width (stacked) */
   function sizeArt(){
     var head = document.getElementById('md-head-block');
     var art  = document.getElementById('md-art');
@@ -686,33 +675,30 @@
     var stacked = head && (window.getComputedStyle(head).flexDirection === 'column');
 
     if(stacked){
-      // width already 60%; make it square
       var w = art.clientWidth;
       if(w>0){ art.style.height = w + 'px'; }
     }else{
-      // desktop: height = bottom of pills - top of title
       var baseTop = info.getBoundingClientRect().top;
       var titleTop = title.getBoundingClientRect().top - baseTop;
       var actsBottom = (acts.getBoundingClientRect().top - baseTop) + acts.offsetHeight;
-      var h = Math.max(160, Math.round(actsBottom - titleTop)); // minimum guard
+      var h = Math.max(160, Math.round(actsBottom - titleTop));
       art.style.height = h + 'px';
       art.style.width  = h + 'px';
     }
   }
 
   /* ---------- Controls ---------- */
-  function openRandom(stayInDetails){
+  function openRandom(){
     var pool = filteredItems.length ? filteredItems : allItems;
     if(!pool.length){ alert("Collection not loaded yet."); return; }
     var idx=Math.floor(Math.random()*pool.length);
-    if(stayInDetails){ openDetailsById(pool[idx].id); }
-    else{ openDetailsById(pool[idx].id); }
+    openDetailsById(pool[idx].id);
   }
 
   document.getElementById("q").addEventListener("input", function(e){ q=e.target.value; page=1; applyFilterAndPaginate(); });
   document.getElementById("prev").addEventListener("click", function(){ if(page>1){ page--; applyFilterAndPaginate(); } });
   document.getElementById("next").addEventListener("click", function(){ if(page<pages){ page++; applyFilterAndPaginate(); } });
-  document.getElementById("random").addEventListener("click", function(){ openRandom(false); });
+  document.getElementById("random").addEventListener("click", openRandom);
   document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
   document.getElementById("pageSize").addEventListener("change", function(e){
     var v = parseInt(e.target.value, 10);
@@ -723,6 +709,7 @@
   });
 
   document.getElementById("backBtn").addEventListener("click", backToList);
+  document.getElementById("headerRandom").addEventListener("click", function(e){ e.preventDefault(); openRandom(); });
 
   /* ---------- Boot ---------- */
   fetchAllItems(function(){ applyFilterAndPaginate(); });
