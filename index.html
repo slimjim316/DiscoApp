@@ -56,26 +56,27 @@
   .toolbar{ position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--hair);
     display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; }
   .group{display:flex; gap:8px; align-items:center}
-  .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer }
+  .btn{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 12px; border-radius:10px; font-size:15px; cursor:pointer; text-decoration:none }
   .btn:disabled{opacity:.5; cursor:not-allowed}
   .accent{border-color:var(--red); color:#fff; background:var(--red)}
   .select{ border:1px solid var(--hair); background:var(--tile); color:var(--text); padding:8px 28px 8px 12px; border-radius:10px; font-size:15px; cursor:pointer; appearance:none;
     background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%);
     background-position:calc(100% - 18px) 16px, calc(100% - 12px) 16px; background-size:6px 6px; background-repeat:no-repeat;}
 
-  /* ===== Details sheet ===== */
-  .modal{position:fixed; left:0; right:0; top:0; bottom:0; background:rgba(0,0,0,.35); display:flex; align-items:flex-end; justify-content:center}
-  .modal.hidden{display:none}
-  .sheet{ width:100%; max-width:980px; background:var(--bg); border-radius:16px 16px 0 0; border:1px solid var(--hair); border-bottom:0; max-height:90vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,.15); }
-  .drag{width:48px;height:5px;border-radius:999px;background:var(--hair);margin:8px auto}
-  #md-body{padding:14px 16px 22px 16px}
+  /* ===== Full-page Details ===== */
+  #listPage{ display:block; }
+  #detailPage{ display:none; min-height:100vh; }
+  .detail-header{ position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--hair); z-index:9; padding:8px 12px; }
+  .detail-topbar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .detail-title{ font-weight:700; font-size:18px; color:var(--muted); }
 
+  .detail-body{ padding:14px 16px 90px 16px; max-width:980px; margin:0 auto; }
   .md-head{display:flex; gap:18px; align-items:flex-start; margin-bottom:14px;}
-  .md-art{width:220px; height:220px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0}
+  .md-art{ width:220px; height:220px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0 }
   .md-art img{width:100%; height:100%; object-fit:cover; background:#ddd}
   .md-info{min-width:0; flex:1}
   .md-title{font-size:24px; font-weight:800; margin:2px 0 6px 0}
-  .md-artist{ color: var(--red); font-size:24px; font-weight:800; margin:2px 0 10px 0; } /* same size as title */
+  .md-artist{ color: var(--red); font-size:24px; font-weight:800; margin:2px 0 10px 0; } /* same as title */
 
   .md-lines{ margin:0 0 12px 0; }
   .md-lines .line{ font-size:14px; color:var(--text); margin:4px 0; }
@@ -87,7 +88,7 @@
 
   .tracks{list-style:none; padding:0; margin:0}
   .tr{display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--hair)}
-  .tr:last-child{ border-bottom:0 } /* no line after last track */
+  .tr:last-child{ border-bottom:0 }
   .tr .no{width:22px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
   .tr .twrap{min-width:0; flex:1}
   .tr .name{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -95,59 +96,66 @@
 
   @media (max-width:680px){
     .md-head{flex-direction:column; align-items:center; text-align:center}
-    .md-art{width:60%; height:auto} /* height set square via JS */
+    .md-art{width:60%; height:auto} /* height made square via JS */
     .md-actions{justify-content:center}
   }
 </style>
 </head>
 <body>
 
-<div class="version-tag">v1.04c</div>
+<div class="version-tag">v1.04d</div>
 
-<header>
-  <div class="title">Library</div>
-  <div class="search">
-    <span class="mag">🔎</span>
-    <input id="q" placeholder="Artists, albums, catalog #, year" autocomplete="off">
-  </div>
-  <div class="info">
-    <span id="count">0 items</span>
-    <div class="info-right">
-      <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
-      <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
-      <span id="page">Page 1</span>
+<!-- ===== LIST PAGE ===== -->
+<div id="listPage">
+  <header>
+    <div class="title">Library</div>
+    <div class="search">
+      <span class="mag">🔎</span>
+      <input id="q" placeholder="Artists, albums, catalog #, year" autocomplete="off">
     </div>
-  </div>
-</header>
+    <div class="info">
+      <span id="count">0 items</span>
+      <div class="info-right">
+        <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
+        <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
+        <span id="page">Page 1</span>
+      </div>
+    </div>
+  </header>
 
-<main>
-  <div id="grid" class="grid" aria-live="polite" style="display:block;"></div>
-  <ul id="list" class="list" aria-live="polite"></ul>
-</main>
+  <main>
+    <div id="grid" class="grid" aria-live="polite" style="display:block;"></div>
+    <ul id="list" class="list" aria-live="polite"></ul>
+  </main>
 
-<div class="toolbar">
-  <div class="group">
-    <button id="prev" class="btn">◀︎ Prev</button>
-    <button id="next" class="btn">Next ▶︎</button>
-    <button id="random" class="btn accent">🎲 Random</button>
-  </div>
-  <div class="group">
-    <select id="pageSize" class="select" title="Items per page">
-      <option value="25">Show 25</option>
-      <option value="50">Show 50</option>
-      <option value="100" selected>Show 100</option>
-      <option value="250">Show 250</option>
-    </select>
-    <button id="toggle" class="btn">List View</button>
+  <div class="toolbar">
+    <div class="group">
+      <button id="prev" class="btn">◀︎ Prev</button>
+      <button id="next" class="btn">Next ▶︎</button>
+      <button id="random" class="btn accent">🎲 Random</button>
+    </div>
+    <div class="group">
+      <select id="pageSize" class="select" title="Items per page">
+        <option value="25">Show 25</option>
+        <option value="50">Show 50</option>
+        <option value="100" selected>Show 100</option>
+        <option value="250">Show 250</option>
+      </select>
+      <button id="toggle" class="btn">List View</button>
+    </div>
   </div>
 </div>
 
-<!-- Details sheet -->
-<div id="modal" class="modal hidden" aria-hidden="true">
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="md-album-title">
-    <div class="drag"></div>
-    <div id="md-body"></div>
+<!-- ===== DETAILS PAGE (full page) ===== -->
+<div id="detailPage" role="document" aria-live="polite">
+  <div class="detail-header">
+    <div class="detail-topbar">
+      <a id="backBtn" class="btn" href="#">◀︎ Back</a>
+      <div class="detail-title" id="detailTitle">Details</div>
+      <span></span>
+    </div>
   </div>
+  <div class="detail-body" id="detailBody"></div>
 </div>
 
 <script>
@@ -160,6 +168,7 @@
   var page=1, per=100, folder=0, total=0, pages=1, q="", view="grid";
   var allItems = [];
   var filteredItems = [];
+  var scrollMemo = 0;
 
   var PER_KEY = 'discoapp_per_page';
 
@@ -195,8 +204,6 @@
   /* ---------- Utils ---------- */
   function isArray(x){ return Object.prototype.toString.call(x) === '[object Array]'; }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
-  function openModal(){ var m=document.getElementById("modal"); m.className="modal"; m.setAttribute("aria-hidden","false"); }
-  function closeModal(){ var m=document.getElementById("modal"); m.className="modal hidden"; m.setAttribute("aria-hidden","true"); document.getElementById("md-body").innerHTML=""; }
   function validYear(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; }
   function firstYearFromString(s){ var m = /(\d{4})/.exec(String(s||"")); return m ? validYear(+m[1]) : null; }
 
@@ -465,7 +472,7 @@
         meta.appendChild(t); meta.appendChild(s);
         inner.appendChild(wrap); inner.appendChild(meta);
         card.appendChild(inner);
-        card.addEventListener("click",(function(id){return function(){showDetailsById(id);};})(it.id));
+        card.addEventListener("click",(function(id){return function(){openDetailsById(id);};})(it.id));
         grid.appendChild(card);
       }
     }else{
@@ -486,7 +493,7 @@
 
         metaL.appendChild(tL); metaL.appendChild(sL);
         li.appendChild(tw); li.appendChild(metaL);
-        li.addEventListener("click",(function(id){return function(){showDetailsById(id);};})(it2.id));
+        li.addEventListener("click",(function(id){return function(){openDetailsById(id);};})(it2.id));
         list.appendChild(li);
       }
     }
@@ -496,13 +503,18 @@
     document.getElementById("toggle").textContent = (view==="grid") ? "List View" : "Grid View";
   }
 
-  /* ---------- Helper: aggregate formats into a single string ---------- */
+  /* ---------- Helper: aggregate formats with quantity ---------- */
   function formatFormats(arr){
     if(!arr || !arr.length) return "";
     var out=[], seen={};
     for(var i=0;i<arr.length;i++){
       var f=arr[i]||{};
-      if(f.name){ var n=String(f.name); if(!seen[n]){ out.push(n); seen[n]=1; } }
+      var base = "";
+      var qty = (f.qty!=null && String(f.qty) !== "" && String(f.qty) !== "1") ? (String(f.qty) + "×") : "";
+      if(f.name){
+        base = qty + String(f.name);
+        if(!seen[base]){ out.push(base); seen[base]=1; }
+      }
       if(f.descriptions && f.descriptions.length){
         for(var j=0;j<f.descriptions.length;j++){
           var d=String(f.descriptions[j]);
@@ -517,19 +529,29 @@
     return out.join(", ");
   }
 
-  /* ---------- Details ---------- */
+  /* ---------- Details (full page) ---------- */
   function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
 
-  function showDetailsById(id){
+  function openDetailsById(id){
+    scrollMemo = window.scrollY || document.documentElement.scrollTop || 0;
     fetchRelease(id, function(err, data){
       if(err){ alert("Could not load details: " + err.message); return; }
       showDetails(data);
+      document.getElementById('listPage').style.display = 'none';
+      document.getElementById('detailPage').style.display = 'block';
+      window.scrollTo(0,0);
     });
   }
 
-  function showDetails(release){
-    var body = document.getElementById("md-body");
+  function backToList(e){
+    if(e) e.preventDefault();
+    document.getElementById('detailPage').style.display = 'none';
+    document.getElementById('listPage').style.display = 'block';
+    window.scrollTo(0, scrollMemo||0);
+  }
 
+  function showDetails(release){
+    var body = document.getElementById("detailBody");
     var title   = release.title || "";
     var artists = (release.artists && release.artists[0] ? release.artists[0].name : "");
     var year    = validYear(release.year);
@@ -541,13 +563,10 @@
       catno     = release.labels[0].catno || "";
     }
 
-    // Formats: aggregate all
     var formatFull = formatFormats(release.formats);
-
     var country    = release.country || "";
     var rawRel     = release.released || release.released_formatted || "";
     var releasedYr = firstYearFromString(rawRel) || (year!=null? year : null);
-
     var genres = (release.genres ? release.genres.join(", ") : "");
     var styles = (release.styles ? release.styles.join(", ") : "");
 
@@ -575,7 +594,7 @@
     }
     var totalMinutes = Math.round(totalSec / 60);
 
-    // Phonographic copyright (optional) -> show as "℗ ..."
+    // ℗
     var pCopyright = "";
     if (release.companies && release.companies.length){
       for (var c=0;c<release.companies.length;c++){
@@ -593,6 +612,7 @@
       pCopyright = "℗ " + release.copyright;
     }
 
+    // Header & info
     var h = '';
     h += '<div class="md-head" id="md-head-block">';
     h += '  <div class="md-art" id="md-art"><img alt="" src="'+(art||'')+'"></div>';
@@ -620,6 +640,7 @@
     h += '  </div>';
     h += '</div>';
 
+    // Tracks
     if (release.tracklist && release.tracklist.length){
       h += '<ul class="tracks">';
       for (var i2=0;i2<release.tracklist.length;i2++){
@@ -636,20 +657,20 @@
       h += '</ul>';
     }
 
-    // Footer lines (no headings)
+    // Footer (no headings)
     h += '<div class="s"><span class="muted">Master release</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
     var songsLine = (trackCount ? (trackCount + ' song' + (trackCount>1?'s':'') + (totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
     h += '<div class="s">' + songsLine + '</div>';
     if (pCopyright){ h += '<div class="s">' + escapeHtml(pCopyright) + '</div>'; }
 
+    document.getElementById("detailTitle").textContent = artists ? (artists + " — " + title) : title;
     body.innerHTML = h;
-    openModal();
 
-    // Wire Random pill
+    // Wire actions
     var pr = document.getElementById("pill-random");
-    if (pr) pr.addEventListener("click", function(){ openRandom(); });
+    if (pr) pr.addEventListener("click", function(){ openRandom(true); }); // true => stay in details
 
-    // Size the art to match info block (desktop) or stay square at 60% width (stacked)
+    // Size art (desktop match + mobile square)
     sizeArt(); window.addEventListener('resize', sizeArt);
   }
 
@@ -673,24 +694,25 @@
       var baseTop = info.getBoundingClientRect().top;
       var titleTop = title.getBoundingClientRect().top - baseTop;
       var actsBottom = (acts.getBoundingClientRect().top - baseTop) + acts.offsetHeight;
-      var h = Math.max(160, Math.round(actsBottom - titleTop)); // guard a minimum
+      var h = Math.max(160, Math.round(actsBottom - titleTop)); // minimum guard
       art.style.height = h + 'px';
       art.style.width  = h + 'px';
     }
   }
 
   /* ---------- Controls ---------- */
-  function openRandom(){
+  function openRandom(stayInDetails){
     var pool = filteredItems.length ? filteredItems : allItems;
     if(!pool.length){ alert("Collection not loaded yet."); return; }
     var idx=Math.floor(Math.random()*pool.length);
-    showDetailsById(pool[idx].id);
+    if(stayInDetails){ openDetailsById(pool[idx].id); }
+    else{ openDetailsById(pool[idx].id); }
   }
 
   document.getElementById("q").addEventListener("input", function(e){ q=e.target.value; page=1; applyFilterAndPaginate(); });
   document.getElementById("prev").addEventListener("click", function(){ if(page>1){ page--; applyFilterAndPaginate(); } });
   document.getElementById("next").addEventListener("click", function(){ if(page<pages){ page++; applyFilterAndPaginate(); } });
-  document.getElementById("random").addEventListener("click", openRandom);
+  document.getElementById("random").addEventListener("click", function(){ openRandom(false); });
   document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
   document.getElementById("pageSize").addEventListener("change", function(e){
     var v = parseInt(e.target.value, 10);
@@ -700,8 +722,7 @@
     applyFilterAndPaginate();
   });
 
-  document.getElementById("modal").addEventListener("click", function(e){ if(e.target && e.target.id==="modal") closeModal(); });
-  document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
+  document.getElementById("backBtn").addEventListener("click", backToList);
 
   /* ---------- Boot ---------- */
   fetchAllItems(function(){ applyFilterAndPaginate(); });
