@@ -28,7 +28,7 @@
   /* Grid cards */
   .grid{ display:flex; flex-wrap:wrap; margin:-6px; }
   .card{ width:20%; padding:6px; }
-  .cardInner{ background:var(--bg); border:1px solid var(--hair); border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; height:100%; }
+  .cardInner{ background:var(--bg); border:1px solid var(--hair); border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; height:100%;}
   .artWrap{position:relative;width:100%;padding-top:100%;background:#ddd;border-bottom:1px solid var(--hair)}
   .art{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;background:#ddd}
   .meta{padding:8px 10px;min-height:56px}
@@ -92,23 +92,22 @@
   .deep-link{ display:inline-block; margin-top:12px; color:var(--red); text-decoration:none; font-size:16px; }
   .deep-link:hover{ text-decoration:underline; }
 
-  /* ===== More by Artist (mini-grid) ===== */
+  /* ===== More by Artist (mini grid) ===== */
   .more-wrap{ margin-top:18px; }
-  .more-title{ font-weight:700; margin:12px 0 8px 0; font-size:16px; }
-  .more-grid{ display:flex; flex-wrap:wrap; margin:-4px; }
-  .mini-card{ width:16.6666%; padding:4px; }  /* 6 across desktop */
-  @media (max-width:1024px){ .mini-card{ width:20%; } }     /* 5 */
-  @media (max-width:820px) { .mini-card{ width:25%; } }     /* 4 */
-  @media (max-width:600px) { .mini-card{ width:33.3333%; } }/* 3 */
-  @media (max-width:420px) { .mini-card{ width:50%; } }     /* 2 */
-  .mini-inner{ background:var(--bg); border:1px solid var(--hair); border-radius:10px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; height:100%; }
-  .mini-artwrap{ position:relative; width:100%; padding-top:100%; background:#ddd; border-bottom:1px solid var(--hair); }
+  .more-title{ font-weight:700; margin:12px 0 6px 0; }
+  .mini-grid{ display:flex; flex-wrap:wrap; margin:-5px; }
+  .mini-card{ width:16.6667%; padding:5px; }          /* 6 across by default */
+  .mini-inner{ background:var(--bg); border:1px solid var(--hair); border-radius:10px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; }
+  .mini-artWrap{ position:relative; width:100%; padding-top:100%; background:#ddd; border-bottom:1px solid var(--hair); }
   .mini-art{ position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; background:#ddd; }
-  .mini-meta{ padding:6px 8px; min-height:48px; }
-  .mini-title{ font-weight:700; font-size:12px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .mini-sub{ margin-top:2px; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  /* keep tap targets comfy on iPad */
-  @media (pointer:coarse){ .mini-meta{ padding:8px 9px; } .mini-title{ font-size:13px; } .mini-sub{ font-size:12px; } }
+  .mini-meta{ padding:6px 8px; }
+  .mini-t{ font-weight:700; font-size:13px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mini-s{ margin-top:2px; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  @media (max-width:1024px){ .mini-card{width:20%;} }     /* 5 across */
+  @media (max-width:820px) { .mini-card{width:25%;} }      /* 4 across */
+  @media (max-width:600px) { .mini-card{width:33.3333%;} } /* 3 across */
+  @media (max-width:420px) { .mini-card{width:50%;} }      /* 2 across */
 
   @media (max-width:680px){
     .md-head{flex-direction:column; align-items:center; text-align:center}
@@ -187,9 +186,6 @@
   var allItems = [];
   var filteredItems = [];
   var scrollMemo = 0;
-
-  // Feature flag: show "More by" for Various Artists?
-  var SHOW_VARIOUS_MORE = false;
 
   var PER_KEY = 'discoapp_per_page';
 
@@ -570,64 +566,6 @@
     window.scrollTo(0, scrollMemo||0);
   }
 
-  function renderMoreBy(artistName, excludeReleaseId){
-    if(!artistName) return "";
-
-    var isVar = isVarious(artistName);
-    if(isVar && !SHOW_VARIOUS_MORE) return ""; // recommended default
-
-    var norm = isVar ? "various" : normalizeArtist(artistName);
-    // filter other items by the same normalized artist, excluding current
-    var items = [];
-    for(var i=0;i<allItems.length;i++){
-      var it = allItems[i];
-      if(it.id===excludeReleaseId) continue;
-      if((isVar && it.isVarious) || (!isVar && it.normArtist===norm)){
-        items.push(it);
-      }
-    }
-
-    if(!items.length) return "";
-
-    // keep same sort semantics (already globally sorted, but ensure stable by cmp)
-    items.sort(cmpItems);
-
-    var html = '';
-    html += '<div class="more-wrap">';
-    html += '  <div class="more-title">More by ' + escapeHtml(artistName) + '</div>';
-    html += '  <div class="more-grid">';
-
-    for(var j=0;j<items.length;j++){
-      var it = items[j];
-      var yearStr = (it.year!=null) ? String(it.year) : "-";
-      var masterStr = (it.master_year!=null) ? String(it.master_year) : "-";
-
-      html += '    <div class="mini-card">';
-      html += '      <div class="mini-inner" data-id="'+it.id+'">';
-      html += '        <div class="mini-artwrap"><img class="mini-art" alt="" src="'+(it.thumb||'')+'"></div>';
-      html += '        <div class="mini-meta">';
-      html += '          <div class="mini-title">'+escapeHtml(it.title||"")+'</div>';
-      html += '          <div class="mini-sub">'+escapeHtml(it.artist||"")+' • '+yearStr+' • '+masterStr+'</div>';
-      html += '        </div>';
-      html += '      </div>';
-      html += '    </div>';
-    }
-
-    html += '  </div>';
-    html += '</div>';
-    return html;
-  }
-
-  function wireMoreByClicks(){
-    var nodes = document.querySelectorAll('.mini-inner');
-    for(var i=0;i<nodes.length;i++){
-      (function(el){
-        var id = el.getAttribute('data-id');
-        el.addEventListener('click', function(){ if(id){ openDetailsById(parseInt(id,10)); } });
-      })(nodes[i]);
-    }
-  }
-
   function showDetails(release){
     var body = document.getElementById("detailBody");
     var title   = release.title || "";
@@ -734,21 +672,17 @@
     if (pCopyright){ h += '<div class="detail-foot">' + escapeHtml(pCopyright) + '</div>'; }
     if (release.uri){ h += '<a class="deep-link" target="_blank" rel="noopener" href="'+release.uri+'">Open in Discogs ↗</a>'; }
 
-    // === More by Artist (after deep link) ===
-    h += renderMoreBy(artists, release.id);
+    /* ---- Placeholder for More by Artist ---- */
+    h += '<div id="moreByMount" class="more-wrap" style="display:none;"></div>';
 
     body.innerHTML = h;
 
-    // Wire mini-card clicks
-    wireMoreByClicks();
-
-    // Size art reliably: after paint, after image load, and with small delays
+    // Size art reliably (covers iOS 12 font/image load timing)
     function sizeArt(){
       var head  = document.getElementById('md-head-block');
       var artEl = document.getElementById('md-art');
       var info  = document.getElementById('md-info');
-      var titleEl = document.getElementById('md-album-title');
-      if(!head || !artEl || !info || !titleEl) return;
+      if(!head || !artEl || !info) return;
 
       var stacked = (window.getComputedStyle(head).flexDirection === 'column');
       if(stacked){
@@ -756,11 +690,11 @@
         if(w>0){ artEl.style.height = w + 'px'; }
       }else{
         var baseTop   = info.getBoundingClientRect().top;
-        var titleTop  = Math.max(0, titleEl.getBoundingClientRect().top - baseTop);
+        var titleTop  = Math.max(0, document.getElementById('md-album-title').getBoundingClientRect().top - baseTop);
         var infoH     = Math.max(info.scrollHeight, info.getBoundingClientRect().height);
-        var hgt       = Math.max(160, Math.round(infoH - titleTop));
-        artEl.style.height = hgt + 'px';
-        artEl.style.width  = hgt + 'px';
+        var hpx       = Math.max(160, Math.round(infoH - titleTop));
+        artEl.style.height = hpx + 'px';
+        artEl.style.width  = hpx + 'px';
       }
     }
     requestAnimationFrame(sizeArt);
@@ -769,6 +703,60 @@
     var imgEl = document.getElementById('md-art-img');
     if(imgEl){ imgEl.onload = sizeArt; }
     window.addEventListener('resize', sizeArt);
+
+    // Render "More by Artist"
+    renderMoreBy(artists, release.id);
+  }
+
+  function renderMoreBy(artistName, excludeId){
+    // Recommendation implemented: suppress for Various Artists by default
+    if(isVarious(artistName)){ return; }
+
+    var targetNorm = normalizeArtist(artistName);
+    var others = [];
+    for(var i=0;i<allItems.length;i++){
+      var it = allItems[i];
+      if(it && !it.isVarious && it.normArtist === targetNorm && String(it.id) !== String(excludeId)){
+        others.push(it);
+      }
+    }
+    if(!others.length){ return; }
+
+    // Ensure sort matches grid (cmpItems)
+    others.sort(cmpItems);
+
+    var mount = document.getElementById('moreByMount');
+    if(!mount) return;
+    mount.style.display = 'block';
+
+    var h = '';
+    h += '<div class="more-title">More by '+escapeHtml(artistName)+'</div>';
+    h += '<div class="mini-grid">';
+    for(var j=0;j<others.length;j++){
+      var it = others[j];
+      var y  = (it.year!=null) ? String(it.year) : "-";
+      var my = (it.master_year!=null) ? String(it.master_year) : "-";
+      h += '<div class="mini-card">';
+      h += '  <div class="mini-inner" data-id="'+it.id+'">';
+      h += '    <div class="mini-artWrap"><img class="mini-art" alt="" src="'+(it.thumb||'')+'"></div>';
+      h += '    <div class="mini-meta">';
+      h += '      <div class="mini-t">'+escapeHtml(it.title||'')+'</div>';
+      h += '      <div class="mini-s">'+escapeHtml(it.artist||'')+' • '+y+' • '+my+'</div>';
+      h += '    </div>';
+      h += '  </div>';
+      h += '</div>';
+    }
+    h += '</div>';
+    mount.innerHTML = h;
+
+    // Clicks → open details
+    var cards = mount.getElementsByClassName('mini-inner');
+    for(var k=0;k<cards.length;k++){
+      (function(el){
+        var rid = el.getAttribute('data-id');
+        el.addEventListener('click', function(){ openDetailsById(rid); });
+      })(cards[k]);
+    }
   }
 
   /* ---------- Controls ---------- */
@@ -776,4 +764,28 @@
     var pool = filteredItems.length ? filteredItems : allItems;
     if(!pool.length){ alert("Collection not loaded yet."); return; }
     var idx=Math.floor(Math.random()*pool.length);
-    openDetailsById
+    openDetailsById(pool[idx].id);
+  }
+
+  document.getElementById("q").addEventListener("input", function(e){ q=e.target.value; page=1; applyFilterAndPaginate(); });
+  document.getElementById("prev").addEventListener("click", function(){ if(page>1){ page--; applyFilterAndPaginate(); } });
+  document.getElementById("next").addEventListener("click", function(){ if(page<pages){ page++; applyFilterAndPaginate(); } });
+  document.getElementById("random").addEventListener("click", openRandom);
+  document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
+  document.getElementById("pageSize").addEventListener("change", function(e){
+    var v = parseInt(e.target.value, 10);
+    per = (!isNaN(v) && [25,50,100,250].indexOf(v) !== -1) ? v : 100;
+    localStorage.setItem(PER_KEY, String(per));
+    page = 1;
+    applyFilterAndPaginate();
+  });
+
+  document.getElementById("backBtn").addEventListener("click", backToList);
+  document.getElementById("headerRandom").addEventListener("click", function(e){ e.preventDefault(); openRandom(); });
+
+  /* ---------- Boot ---------- */
+  fetchAllItems(function(){ applyFilterAndPaginate(); });
+})();
+</script>
+</body>
+</html>
