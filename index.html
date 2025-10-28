@@ -25,10 +25,12 @@
   .api-status{display:none}
   main{padding:10px 10px 90px}
 
+  /* ===== Grid cards (Apple Music-style artwork) ===== */
   .grid{ display:flex; flex-wrap:wrap; margin:-6px; }
   .card{ width:20%; padding:6px; }
-  .cardInner{ background:var(--bg); border:1px solid var(--hair); border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; height:100%;}
-  .artWrap{position:relative;width:100%;padding-top:100%;background:#ddd;border-bottom:1px solid var(--hair)}
+  .cardInner{ background:var(--bg); border:none; border-radius:12px; overflow:visible; cursor:pointer; display:flex; flex-direction:column; height:100%;}
+  .artWrap{position:relative;width:100%;padding-top:100%;background:#ddd;border:none;border-radius:14px;overflow:hidden;
+           box-shadow:0 2px 10px rgba(0,0,0,.06);}
   .art{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;background:#ddd}
   .meta{padding:8px 10px;min-height:56px}
   .t{font-weight:700;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -38,9 +40,11 @@
   @media (max-width:600px) { .card{width:50%} }
   @media (max-width:380px) { .card{width:100%} }
 
+  /* ===== List rows (rounded thumbs) ===== */
   .list{list-style:none; padding:0; margin:0; display:none;}
   .row{display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid var(--hair); cursor:pointer}
-  .thumbWrap{position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden; background:#ddd; margin-right:12px}
+  .thumbWrap{position:relative; width:64px; height:64px; border-radius:10px; overflow:hidden; background:#ddd; margin-right:12px;
+             box-shadow:0 2px 8px rgba(0,0,0,.05)}
   .thumb{position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; background:#ddd}
   .metaL{min-width:0}
   .tL{font-weight:700;font-size:16px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -56,6 +60,7 @@
     background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%);
     background-position:calc(100% - 18px) 16px, calc(100% - 12px) 16px; background-size:6px 6px; background-repeat:no-repeat;}
 
+  /* ===== Full-page Details ===== */
   #listPage{ display:block; }
   #detailPage{ display:none; min-height:100vh; }
   .detail-header{ position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--hair); z-index:9; padding:8px 12px; }
@@ -64,7 +69,7 @@
 
   .detail-body{ padding:14px 16px 90px 16px; max-width:980px; margin:0 auto; }
   .md-head{display:flex; gap:18px; align-items:flex-start; margin-bottom:14px;}
-  .md-art{ width:220px; height:220px; border-radius:12px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0 }
+  .md-art{ width:220px; height:220px; border-radius:14px; overflow:hidden; background:#ddd; border:1px solid var(--hair); flex-shrink:0 }
   .md-art img{width:100%; height:100%; object-fit:cover; background:#ddd}
   .md-info{min-width:0; flex:1}
   .md-title{font-size:24px; font-weight:600; margin:2px 0 6px 0}
@@ -86,12 +91,14 @@
   .deep-link{ display:inline-block; margin-top:12px; color:var(--red); text-decoration:none; font-size:16px; }
   .deep-link:hover{ text-decoration:underline; }
 
+  /* ===== More by Artist (mini grid, rounded art, no borders) ===== */
   .more-wrap{ margin-top:18px; }
   .more-title{ font-weight:700; margin:12px 0 6px 0; }
   .mini-grid{ display:flex; flex-wrap:wrap; margin:-5px; }
   .mini-card{ width:16.6667%; padding:5px; }
-  .mini-inner{ background:var(--bg); border:1px solid var(--hair); border-radius:10px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; }
-  .mini-artWrap{ position:relative; width:100%; padding-top:100%; background:#ddd; border-bottom:1px solid var(--hair); }
+  .mini-inner{ background:var(--bg); border:none; border-radius:10px; overflow:visible; cursor:pointer; display:flex; flex-direction:column; }
+  .mini-artWrap{ position:relative; width:100%; padding-top:100%; background:#ddd; border:none; border-radius:12px; overflow:hidden;
+                 box-shadow:0 2px 10px rgba(0,0,0,.06); }
   .mini-art{ position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; background:#ddd; }
   .mini-meta{ padding:6px 8px; }
   .mini-t{ font-weight:700; font-size:13px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -110,7 +117,7 @@
 </head>
 <body>
 
-<div class="version-tag">v1.06c</div>
+<div class="version-tag">v1.06d</div>
 
 <!-- ===== LIST PAGE ===== -->
 <div id="listPage">
@@ -123,15 +130,13 @@
     <div class="info">
       <span id="count">0 of 0</span>
       <div class="info-right">
-        <!-- Master-year progress -->
         <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
         <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
-        <!-- Track-index progress -->
+
         <span id="trackProgressTxt" style="display:none;">Track titles: 0 / 0 (0 active)</span>
         <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;"><div id="trackProgressBar" class="progress-bar"></div></div>
-        <!-- API status -->
-        <span id="apiStatus" class="api-status">API busy, slowing down…</span>
 
+        <span id="apiStatus" class="api-status">API busy, slowing down…</span>
         <span id="page">Page 1</span>
       </div>
     </div>
@@ -185,6 +190,7 @@
 
   var PER_KEY = 'discoapp_per_page';
   var COUNTRY_KEY = 'discoapp_country';
+  var TRACKS_KEY  = 'discoapp_tracks';
 
   (function restorePer(){
     var saved = parseInt(localStorage.getItem(PER_KEY) || '100', 10);
@@ -196,14 +202,9 @@
 
   /* ======== Global rate limit handling ======== */
   var RATE_COOLDOWN_MS = 0;
-  var LAST_429_AT = 0;
   var apiStatusEl = document.getElementById('apiStatus');
+  function showApiStatus(on){ apiStatusEl.style.display = on ? 'inline' : 'none'; }
 
-  function showApiStatus(on){
-    apiStatusEl.style.display = on ? 'inline' : 'none';
-  }
-
-  // Base XHR with optional cooldown + 429 detection
   function get(url, cb){
     var delay = RATE_COOLDOWN_MS || 0;
     function send(){
@@ -228,19 +229,34 @@
     }
     if(delay>0){ setTimeout(send, delay); } else { send(); }
   }
-
-  // Backoff controller
   function on429(){
-    LAST_429_AT = Date.now();
     RATE_COOLDOWN_MS = Math.min( (RATE_COOLDOWN_MS? Math.round(RATE_COOLDOWN_MS*1.6):800) + Math.floor(Math.random()*400), 8000);
     showApiStatus(true);
   }
   function onSuccessAfter429(){
-    // If we've been cooling, gently reduce cooldown
     if(RATE_COOLDOWN_MS>0){
       RATE_COOLDOWN_MS = Math.max( Math.floor(RATE_COOLDOWN_MS*0.8), 0);
       if(RATE_COOLDOWN_MS===0) showApiStatus(false);
     }
+  }
+  function getWithRetry(url, cb){
+    var attempt = 0;
+    function tryOnce(){
+      get(url, function(err, data){
+        if(err && err.rateLimit){
+          on429();
+          attempt++;
+          var backoff = Math.min( 1000 * Math.pow(1.5, attempt) + Math.floor(Math.random()*300), 9000);
+          setTimeout(tryOnce, backoff);
+        }else if(err){
+          cb(err, null);
+        }else{
+          onSuccessAfter429();
+          cb(null, data);
+        }
+      });
+    }
+    tryOnce();
   }
 
   /* ======== Utils ======== */
@@ -268,7 +284,6 @@
 
   /* ======== Queues & Progress ======== */
   var CONCURRENCY = 6, inflight = 0, queue = [], tickTimer=null;
-
   function runQueue(){
     while(inflight<CONCURRENCY && queue.length){
       var job = queue.shift();
@@ -289,77 +304,26 @@
     }, 400);
   }
 
-  /* ======== API helpers with retry ======== */
-  function getWithRetry(url, cb){
-    var attempt = 0;
-    function tryOnce(){
-      get(url, function(err, data){
-        if(err && err.rateLimit){
-          on429();
-          attempt++;
-          var backoff = Math.min( 1000 * Math.pow(1.5, attempt) + Math.floor(Math.random()*300), 9000);
-          setTimeout(tryOnce, backoff);
-        }else if(err){
-          cb(err, null);
-        }else{
-          onSuccessAfter429();
-          cb(null, data);
-        }
-      });
-    }
-    tryOnce();
-  }
-
-  function fetchMaster(masterId, masterUrl, cb){
-    if(!masterId){ cb(null,null); return; }
-    if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
-    if(MASTER_INFLIGHT[masterId]){ cb(null,null); return; }
-    MASTER_INFLIGHT[masterId] = true;
-
-    var urls = []; if(masterUrl) urls.push(masterUrl);
-    urls.push("https://api.discogs.com/masters/" + encodeURIComponent(masterId));
-
-    queue.push(function(done){
-      var urlIdx=0;
-      function nextUrl(){
-        if(urlIdx>=urls.length){ delete MASTER_INFLIGHT[masterId]; done(); cb(null,null); return; }
-        var u=urls[urlIdx++];
-        getWithRetry(u, function(err, data){
-          var y = !err ? parseYearFromMaster(data) : null;
-          if(!err && y!=null){
-            MASTER_YEAR[masterId]=y; saveMasterYearCache();
-            delete MASTER_INFLIGHT[masterId]; done(); cb(null,y);
-          }else{
-            // try next url if available
-            nextUrl();
-          }
-        });
-      }
-      nextUrl();
-    });
-    updateProgress(); runQueue();
-  }
-
-  function fetchRelease(id, cb){
-    getWithRetry(API + "/api/release?id=" + encodeURIComponent(id), cb);
-  }
-
-  function wantMasters(items){ var list=[], seen={}; for(var i=0;i<items.length;i++){ var m=items[i].master_id; if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:items[i].master_url}); } } return list; }
-
-  function fillMasterYears(items, onDone){
-    var all=wantMasters(items), pending=[], i;
-    for(i=0;i<all.length;i++){ var m=all[i].id; if(!MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m]) pending.push(all[i]); }
-    if(!pending.length){ updateProgress(); if(onDone) onDone(); return; }
-    var left=pending.length;
-    for(i=0;i<pending.length;i++){ (function(mid,murl){ fetchMaster(mid,murl,function(){ left--; if(left===0){ updateProgress(); if(onDone) onDone(); } }); })(pending[i].id, pending[i].url); }
-    updateProgress();
-  }
-
-  /* ======== Track-title indexing (progress + cache country on the fly) ======== */
-  var TRACK_INDEX = {};        // { releaseId: [lowercased track titles...] }
-  var TRACK_INFLIGHT = {};     // { releaseId: true }
+  /* ======== Track-title indexing (with persisted cache) ======== */
+  var TRACK_INDEX = {};
+  try {
+    var _t = JSON.parse(localStorage.getItem(TRACKS_KEY) || '{}') || {};
+    // Coerce values to arrays of strings; tolerate older formats.
+    for(var k in _t){ if(_t.hasOwnProperty(k)){ TRACK_INDEX[k] = isArray(_t[k]) ? _t[k] : String(_t[k]||"").split("\n"); } }
+  } catch(e){ TRACK_INDEX = {}; }
+  var TRACK_INFLIGHT = {};
   var TRACK_MAX_FETCH_PER_QUERY = 30;
-  var TRACK_CANDIDATES = [];   // current-query candidates for progress
+  var TRACK_CANDIDATES = [];
+  var saveTracksTimer = null;
+  function saveTracksCacheDebounced(){
+    if(saveTracksTimer) return;
+    saveTracksTimer = setTimeout(function(){
+      saveTracksTimer = null;
+      try { localStorage.setItem(TRACKS_KEY, JSON.stringify(TRACK_INDEX)); } catch(e){}
+    }, 600);
+  }
+
+  function fetchRelease(id, cb){ getWithRetry(API + "/api/release?id=" + encodeURIComponent(id), cb); }
 
   function indexTracksFor(items, needleLC){
     var queued = 0;
@@ -384,13 +348,15 @@
               }
             }
             TRACK_INDEX[String(releaseId)] = arr;
+            saveTracksCacheDebounced();
+
             delete TRACK_INFLIGHT[String(releaseId)];
             done();
 
             var need = needleLC || "";
             var hit = false;
             if(arr && arr.length && need.length>=3){
-              for(var k=0;k<arr.length;k++){ if(arr[k].indexOf(need)>-1){ hit = true; break; } }
+              for(var z=0;z<arr.length;z++){ if(arr[z].indexOf(need)>-1){ hit = true; break; } }
             }
             if(hit || (RELEASE_COUNTRY[String(releaseId)]!=null)){
               applyFilterAndPaginate();
@@ -429,6 +395,8 @@
   }
 
   /* ======== Progress UIs ======== */
+  function wantMasters(items){ var list=[], seen={}; for(var i=0;i<items.length;i++){ var m=items[i].master_id; if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:items[i].master_url}); } } return list; }
+
   function updateProgress(){
     var progressTxt=document.getElementById("progressTxt");
     var progressBar=document.getElementById("progressBar");
@@ -584,6 +552,44 @@
         }
       }, 4000);
     }
+  }
+
+  function fetchMaster(mid, murl, cb){
+    if(!mid){ cb(null,null); return; }
+    if(MASTER_YEAR.hasOwnProperty(mid)){ cb(null, MASTER_YEAR[mid]); return; }
+    if(MASTER_INFLIGHT[mid]){ cb(null,null); return; }
+    MASTER_INFLIGHT[mid] = true;
+
+    var urls = []; if(murl) urls.push(murl);
+    urls.push("https://api.discogs.com/masters/" + encodeURIComponent(mid));
+
+    queue.push(function(done){
+      var i=0;
+      function next(){
+        if(i>=urls.length){ delete MASTER_INFLIGHT[mid]; done(); cb(null,null); return; }
+        var u=urls[i++];
+        getWithRetry(u, function(err, data){
+          var y = !err ? parseYearFromMaster(data) : null;
+          if(!err && y!=null){
+            MASTER_YEAR[mid]=y; saveMasterYearCache();
+            delete MASTER_INFLIGHT[mid]; done(); cb(null,y);
+          }else{
+            next();
+          }
+        });
+      }
+      next();
+    });
+    updateProgress(); runQueue();
+  }
+
+  function fillMasterYears(items, onDone){
+    var all=wantMasters(items), pending=[], i;
+    for(i=0;i<all.length;i++){ var m=all[i].id; if(!MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m]) pending.push(all[i]); }
+    if(!pending.length){ updateProgress(); if(onDone) onDone(); return; }
+    var left=pending.length;
+    for(i=0;i<pending.length;i++){ (function(mid,murl){ fetchMaster(mid,murl,function(){ left--; if(left===0){ updateProgress(); if(onDone) onDone(); } }); })(pending[i].id, pending[i].url); }
+    updateProgress();
   }
 
   /* ======== Search ======== */
@@ -887,10 +893,8 @@
       }
     }
     requestAnimationFrame(sizeArt);
-    setTimeout(sizeArt, 50);
-    setTimeout(sizeArt, 250);
-    var imgEl = document.getElementById('md-art-img');
-    if(imgEl){ imgEl.onload = sizeArt; }
+    setTimeout(sizeArt, 50); setTimeout(sizeArt, 250);
+    var imgEl = document.getElementById('md-art-img'); if(imgEl){ imgEl.onload = sizeArt; }
     window.addEventListener('resize', sizeArt);
 
     renderMoreBy(artists, release.id);
