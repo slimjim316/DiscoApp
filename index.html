@@ -96,7 +96,7 @@
   .more-wrap{ margin-top:18px; }
   .more-title{ font-weight:700; margin:12px 0 6px 0; }
   .mini-grid{ display:flex; flex-wrap:wrap; margin:-5px; }
-  .mini-card{ width:16.6667%; padding:5px; }          /* 6 across by default */
+  .mini-card{ width:16.6667%; padding:5px; }
   .mini-inner{ background:var(--bg); border:1px solid var(--hair); border-radius:10px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; }
   .mini-artWrap{ position:relative; width:100%; padding-top:100%; background:#ddd; border-bottom:1px solid var(--hair); }
   .mini-art{ position:absolute; left:0; top:0; width:100%; height:100%; object-fit:cover; background:#ddd; }
@@ -104,10 +104,10 @@
   .mini-t{ font-weight:700; font-size:13px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .mini-s{ margin-top:2px; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-  @media (max-width:1024px){ .mini-card{width:20%;} }     /* 5 across */
-  @media (max-width:820px) { .mini-card{width:25%;} }      /* 4 across */
-  @media (max-width:600px) { .mini-card{width:33.3333%;} } /* 3 across */
-  @media (max-width:420px) { .mini-card{width:50%;} }      /* 2 across */
+  @media (max-width:1024px){ .mini-card{width:20%;} }
+  @media (max-width:820px) { .mini-card{width:25%;} }
+  @media (max-width:600px) { .mini-card{width:33.3333%;} }
+  @media (max-width:420px) { .mini-card{width:50%;} }
 
   @media (max-width:680px){
     .md-head{flex-direction:column; align-items:center; text-align:center}
@@ -117,7 +117,7 @@
 </head>
 <body>
 
-<div class="version-tag">v1.05</div>
+<div class="version-tag">v1.06a</div>
 
 <!-- ===== LIST PAGE ===== -->
 <div id="listPage">
@@ -125,7 +125,7 @@
     <div class="title">Library</div>
     <div class="search">
       <span class="mag">🔎</span>
-      <input id="q" placeholder="Artists, albums, catalog #, year" autocomplete="off">
+      <input id="q" placeholder="Search" autocomplete="off">
     </div>
     <div class="info">
       <span id="count">0 of 0</span>
@@ -223,16 +223,14 @@
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
   function validYear(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; }
   function firstYearFromString(s){ var m = /(\d{4})/.exec(String(s||"")); return m ? validYear(+m[1]) : null; }
+  function normalizeArtist(name){ if(!name) return ""; var s=String(name).replace(/^\s*the\s+/i,""); return s.toLowerCase(); }
+  function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
 
   /* ---------- Master-year cache ---------- */
   var MASTER_YEAR = {};
   try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
   function saveMasterYearCache(){ try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){} }
   var MASTER_INFLIGHT = {};
-
-  /* ---------- Sorting helpers ---------- */
-  function normalizeArtist(name){ if(!name) return ""; var s=String(name).replace(/^\s*the\s+/i,""); return s.toLowerCase(); }
-  function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
 
   function parseYearFromMaster(data){
     if(!data) return null;
@@ -243,10 +241,18 @@
     return m ? validYear(+m[1]) : null;
   }
 
-  /* ---------- Queue ---------- */
+  /* ---------- Queues (masters + tracks) ---------- */
   var CONCURRENCY = 6, inflight = 0, queue = [], tickTimer=null;
-  function runQueue(){ while(inflight<CONCURRENCY && queue.length){ var job=queue.shift(); inflight++; job(function(){ inflight--; updateProgress(); runQueue(); }); } }
 
+  function runQueue(){
+    while(inflight<CONCURRENCY && queue.length){
+      var job = queue.shift();
+      inflight++;
+      job(function(){ inflight--; updateProgress(); runQueue(); });
+    }
+  }
+
+  /* Masters */
   function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
     if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
@@ -287,6 +293,65 @@
     updateProgress();
   }
 
+  /* ---------- Track-title indexing (in-memory) ---------- */
+  var TRACK_INDEX = {};        // { releaseId: [lowercased track titles...] }
+  var TRACK_INFLIGHT = {};     // { releaseId: true }
+  var TRACK_CONC_PER_QUERY = 4;
+  var TRACK_MAX_FETCH_PER_QUERY = 30;
+
+  function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
+
+  function indexTracksFor(items, needleLC){
+    // Fetch up to N releases that aren't indexed yet; low concurrency piggybacks on main queue
+    var queued = 0;
+    for(var i=0;i<items.length;i++){
+      var it = items[i];
+      if(!it || !it.id) continue;
+      var rid = String(it.id);
+      if(TRACK_INDEX.hasOwnProperty(rid) || TRACK_INFLIGHT[rid]) continue;
+      // Queue fetch
+      TRACK_INFLIGHT[rid] = true;
+      queued++;
+      (function(releaseId){
+        queue.push(function(done){
+          fetchRelease(releaseId, function(err, data){
+            var arr=[];
+            if(!err && data && data.tracklist && data.tracklist.length){
+              for(var t=0;t<data.tracklist.length;t++){
+                var nm = (data.tracklist[t] && data.tracklist[t].title) ? String(data.tracklist[t].title).toLowerCase() : "";
+                if(nm) arr.push(nm);
+              }
+            }
+            TRACK_INDEX[String(releaseId)] = arr;
+            delete TRACK_INFLIGHT[String(releaseId)];
+            done();
+            // If this newly indexed release matches the current needle, refresh view
+            if(arr.length){
+              for(var k=0;k<arr.length;k++){
+                if(arr[k].indexOf(needleLC) > -1){
+                  applyFilterAndPaginate(); // cheap refresh
+                  break;
+                }
+              }
+            }
+          });
+        });
+      })(rid);
+      if(queued >= TRACK_MAX_FETCH_PER_QUERY) break;
+    }
+    runQueue();
+  }
+
+  function hasTrackMatch(releaseId, needleLC){
+    var list = TRACK_INDEX[String(releaseId)];
+    if(!list || !list.length) return false;
+    for(var i=0;i<list.length;i++){
+      if(list[i].indexOf(needleLC) > -1) return true;
+    }
+    return false;
+  }
+
+  /* ---------- Sorting helpers ---------- */
   function cmpItems(a,b){
     if(a.normArtist < b.normArtist) return -1;
     if(a.normArtist > b.normArtist) return 1;
@@ -430,16 +495,46 @@
     }
   }
 
+  /* ---------- Search ---------- */
+  function basicMatches(it, needleLC){
+    if(!needleLC) return true;
+    if( (it.title||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
+    if( (it.artist||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
+    if( String(it.year!=null?it.year:"").indexOf(needleLC)>-1 ) return true;
+    if( String(it.master_year!=null?it.master_year:"").indexOf(needleLC)>-1 ) return true; // NEW: master release year
+    if( String(it.catno||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
+    return false;
+  }
+
   function matches(it, needle){
-    if(!needle) return true;
-    needle = String(needle).toLowerCase();
-    return (it.title||"").toLowerCase().indexOf(needle)>-1 ||
-           (it.artist||"").toLowerCase().indexOf(needle)>-1 ||
-           String(it.year||"").indexOf(needle)>-1 ||
-           String(it.catno||"").toLowerCase().indexOf(needle)>-1;
+    var n = String(needle||"");
+    if(!n) return true;
+    var lc = n.toLowerCase();
+    // If basic fields match, we're done
+    if(basicMatches(it, lc)) return true;
+    // If long enough query, also check any indexed tracks for this item
+    if(lc.length >= 3 && hasTrackMatch(it.id, lc)) return true;
+    return false;
+  }
+
+  // Warm the track index when the query is 3+ chars:
+  // - focuses on items that *didn't* match basic fields (likely track matches)
+  // - fetches up to TRACK_MAX_FETCH_PER_QUERY per query change
+  function warmTrackIndexForQuery(needle){
+    var lc = String(needle||"").toLowerCase();
+    if(lc.length < 3) return;
+    var candidates = [];
+    for(var i=0;i<allItems.length;i++){
+      var it = allItems[i];
+      if(!basicMatches(it, lc)){ candidates.push(it); }
+    }
+    // De-dupe already indexed/inflight inside indexTracksFor
+    indexTracksFor(candidates, lc);
   }
 
   function applyFilterAndPaginate(){
+    var lc = String(q||"").toLowerCase();
+
     filteredItems = [];
     for(var i=0;i<allItems.length;i++){ if(matches(allItems[i], q)) filteredItems.push(allItems[i]); }
 
@@ -457,6 +552,9 @@
 
     document.getElementById("page").textContent = "Page " + page;
     render();
+
+    // Kick off track indexing after first render, so UI stays snappy
+    warmTrackIndexForQuery(lc);
   }
 
   function render(){
@@ -546,8 +644,6 @@
   }
 
   /* ---------- Details (full page) ---------- */
-  function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
-
   function openDetailsById(id){
     scrollMemo = window.scrollY || document.documentElement.scrollTop || 0;
     fetchRelease(id, function(err, data){
@@ -672,7 +768,7 @@
     if (pCopyright){ h += '<div class="detail-foot">' + escapeHtml(pCopyright) + '</div>'; }
     if (release.uri){ h += '<a class="deep-link" target="_blank" rel="noopener" href="'+release.uri+'">Open in Discogs ↗</a>'; }
 
-    /* ---- Placeholder for More by Artist ---- */
+    /* ---- Placeholder keeps v1.05 'More by Artist' mount ---- */
     h += '<div id="moreByMount" class="more-wrap" style="display:none;"></div>';
 
     body.innerHTML = h;
@@ -704,14 +800,13 @@
     if(imgEl){ imgEl.onload = sizeArt; }
     window.addEventListener('resize', sizeArt);
 
-    // Render "More by Artist"
+    // Keep existing 'More by Artist' behavior from v1.05 (render function is below)
     renderMoreBy(artists, release.id);
   }
 
+  /* ===== More by Artist (unchanged from v1.05) ===== */
   function renderMoreBy(artistName, excludeId){
-    // Recommendation implemented: suppress for Various Artists by default
     if(isVarious(artistName)){ return; }
-
     var targetNorm = normalizeArtist(artistName);
     var others = [];
     for(var i=0;i<allItems.length;i++){
@@ -721,8 +816,6 @@
       }
     }
     if(!others.length){ return; }
-
-    // Ensure sort matches grid (cmpItems)
     others.sort(cmpItems);
 
     var mount = document.getElementById('moreByMount');
@@ -749,7 +842,6 @@
     h += '</div>';
     mount.innerHTML = h;
 
-    // Clicks → open details
     var cards = mount.getElementsByClassName('mini-inner');
     for(var k=0;k<cards.length;k++){
       (function(el){
