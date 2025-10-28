@@ -22,6 +22,7 @@
   .info-right{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .progress-wrap{width:180px;height:6px;border-radius:999px;background:var(--hair);overflow:hidden}
   .progress-bar{height:100%;width:0%;background:var(--bar);transition:width .25s ease; }
+  .api-status{display:none}
   main{padding:10px 10px 90px}
 
   .grid{ display:flex; flex-wrap:wrap; margin:-6px; }
@@ -109,7 +110,7 @@
 </head>
 <body>
 
-<div class="version-tag">v1.06b</div>
+<div class="version-tag">v1.06c</div>
 
 <!-- ===== LIST PAGE ===== -->
 <div id="listPage">
@@ -122,12 +123,14 @@
     <div class="info">
       <span id="count">0 of 0</span>
       <div class="info-right">
-        <!-- Master-year progress (existing) -->
+        <!-- Master-year progress -->
         <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
         <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
-        <!-- NEW: Track-index progress (mirrors style) -->
+        <!-- Track-index progress -->
         <span id="trackProgressTxt" style="display:none;">Track titles: 0 / 0 (0 active)</span>
         <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;"><div id="trackProgressBar" class="progress-bar"></div></div>
+        <!-- API status -->
+        <span id="apiStatus" class="api-status">API busy, slowing down…</span>
 
         <span id="page">Page 1</span>
       </div>
@@ -181,6 +184,7 @@
   var scrollMemo = 0;
 
   var PER_KEY = 'discoapp_per_page';
+  var COUNTRY_KEY = 'discoapp_country';
 
   (function restorePer(){
     var saved = parseInt(localStorage.getItem(PER_KEY) || '100', 10);
@@ -190,23 +194,56 @@
     if(sel){ sel.value = String(per); }
   })();
 
-  function get(url, cb){
-    var x=new XMLHttpRequest();
-    x.open("GET", url, true);
-    try { x.setRequestHeader('Accept','application/json'); } catch(e){}
-    x.onreadystatechange=function(){
-      if(x.readyState===4){
-        if(x.status>=200 && x.status<300){
-          var json=null, err=null;
-          try{ json = JSON.parse(x.responseText); } catch(e){ err = new Error("Bad JSON from API"); }
-          cb(err, json);
-        }else cb(new Error("HTTP "+x.status+" on "+url));
-      }
-    };
-    x.onerror=function(){ cb(new Error("Network/CORS error on "+url)); };
-    x.send();
+  /* ======== Global rate limit handling ======== */
+  var RATE_COOLDOWN_MS = 0;
+  var LAST_429_AT = 0;
+  var apiStatusEl = document.getElementById('apiStatus');
+
+  function showApiStatus(on){
+    apiStatusEl.style.display = on ? 'inline' : 'none';
   }
 
+  // Base XHR with optional cooldown + 429 detection
+  function get(url, cb){
+    var delay = RATE_COOLDOWN_MS || 0;
+    function send(){
+      var x=new XMLHttpRequest();
+      x.open("GET", url, true);
+      try { x.setRequestHeader('Accept','application/json'); } catch(e){}
+      x.onreadystatechange=function(){
+        if(x.readyState===4){
+          if(x.status>=200 && x.status<300){
+            var json=null, err=null;
+            try{ json = JSON.parse(x.responseText); } catch(e){ err = new Error("Bad JSON from API"); }
+            cb(err, json);
+          }else{
+            var e = new Error("HTTP "+x.status+" on "+url);
+            if(x.status===429){ e.rateLimit = true; }
+            cb(e, null);
+          }
+        }
+      };
+      x.onerror=function(){ cb(new Error("Network/CORS error on "+url), null); };
+      x.send();
+    }
+    if(delay>0){ setTimeout(send, delay); } else { send(); }
+  }
+
+  // Backoff controller
+  function on429(){
+    LAST_429_AT = Date.now();
+    RATE_COOLDOWN_MS = Math.min( (RATE_COOLDOWN_MS? Math.round(RATE_COOLDOWN_MS*1.6):800) + Math.floor(Math.random()*400), 8000);
+    showApiStatus(true);
+  }
+  function onSuccessAfter429(){
+    // If we've been cooling, gently reduce cooldown
+    if(RATE_COOLDOWN_MS>0){
+      RATE_COOLDOWN_MS = Math.max( Math.floor(RATE_COOLDOWN_MS*0.8), 0);
+      if(RATE_COOLDOWN_MS===0) showApiStatus(false);
+    }
+  }
+
+  /* ======== Utils ======== */
   function isArray(x){ return Object.prototype.toString.call(x) === '[object Array]'; }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
   function validYear(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; }
@@ -214,6 +251,7 @@
   function normalizeArtist(name){ if(!name) return ""; var s=String(name).replace(/^\s*the\s+/i,""); return s.toLowerCase(); }
   function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
 
+  /* ======== Master-year cache ======== */
   var MASTER_YEAR = {};
   try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
   function saveMasterYearCache(){ try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){} }
@@ -228,6 +266,7 @@
     return m ? validYear(+m[1]) : null;
   }
 
+  /* ======== Queues & Progress ======== */
   var CONCURRENCY = 6, inflight = 0, queue = [], tickTimer=null;
 
   function runQueue(){
@@ -236,6 +275,39 @@
       inflight++;
       job(function(){ inflight--; updateProgress(); updateTrackProgress(); runQueue(); });
     }
+  }
+
+  /* ======== Country cache (persisted) ======== */
+  var RELEASE_COUNTRY = {};
+  try { RELEASE_COUNTRY = JSON.parse(localStorage.getItem(COUNTRY_KEY) || '{}') || {}; } catch(e){ RELEASE_COUNTRY = {}; }
+  var saveCountryTimer = null;
+  function saveCountryCacheDebounced(){
+    if(saveCountryTimer) return;
+    saveCountryTimer = setTimeout(function(){
+      saveCountryTimer = null;
+      try { localStorage.setItem(COUNTRY_KEY, JSON.stringify(RELEASE_COUNTRY)); } catch(e){}
+    }, 400);
+  }
+
+  /* ======== API helpers with retry ======== */
+  function getWithRetry(url, cb){
+    var attempt = 0;
+    function tryOnce(){
+      get(url, function(err, data){
+        if(err && err.rateLimit){
+          on429();
+          attempt++;
+          var backoff = Math.min( 1000 * Math.pow(1.5, attempt) + Math.floor(Math.random()*300), 9000);
+          setTimeout(tryOnce, backoff);
+        }else if(err){
+          cb(err, null);
+        }else{
+          onSuccessAfter429();
+          cb(null, data);
+        }
+      });
+    }
+    tryOnce();
   }
 
   function fetchMaster(masterId, masterUrl, cb){
@@ -248,23 +320,28 @@
     urls.push("https://api.discogs.com/masters/" + encodeURIComponent(masterId));
 
     queue.push(function(done){
-      var urlIdx=0, attempt=0;
-      function tryNext(){
+      var urlIdx=0;
+      function nextUrl(){
         if(urlIdx>=urls.length){ delete MASTER_INFLIGHT[masterId]; done(); cb(null,null); return; }
-        var u=urls[urlIdx];
-        get(u, function(err, data){
+        var u=urls[urlIdx++];
+        getWithRetry(u, function(err, data){
           var y = !err ? parseYearFromMaster(data) : null;
           if(!err && y!=null){
             MASTER_YEAR[masterId]=y; saveMasterYearCache();
             delete MASTER_INFLIGHT[masterId]; done(); cb(null,y);
           }else{
-            attempt++; if(attempt<3){ setTimeout(tryNext, attempt*600); } else { urlIdx++; attempt=0; tryNext(); }
+            // try next url if available
+            nextUrl();
           }
         });
       }
-      tryNext();
+      nextUrl();
     });
     updateProgress(); runQueue();
+  }
+
+  function fetchRelease(id, cb){
+    getWithRetry(API + "/api/release?id=" + encodeURIComponent(id), cb);
   }
 
   function wantMasters(items){ var list=[], seen={}; for(var i=0;i<items.length;i++){ var m=items[i].master_id; if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:items[i].master_url}); } } return list; }
@@ -278,14 +355,11 @@
     updateProgress();
   }
 
-  /* ---------- Track-title indexing ---------- */
+  /* ======== Track-title indexing (progress + cache country on the fly) ======== */
   var TRACK_INDEX = {};        // { releaseId: [lowercased track titles...] }
   var TRACK_INFLIGHT = {};     // { releaseId: true }
   var TRACK_MAX_FETCH_PER_QUERY = 30;
   var TRACK_CANDIDATES = [];   // current-query candidates for progress
-  var RELEASE_COUNTRY = {};    // releaseId -> country (captured when we fetch details)
-
-  function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
 
   function indexTracksFor(items, needleLC){
     var queued = 0;
@@ -301,7 +375,7 @@
           fetchRelease(releaseId, function(err, data){
             var arr=[];
             if(!err && data){
-              if(data.country){ RELEASE_COUNTRY[String(releaseId)] = data.country; }
+              if(data.country){ RELEASE_COUNTRY[String(releaseId)] = data.country; saveCountryCacheDebounced(); }
               if(data.tracklist && data.tracklist.length){
                 for(var t=0;t<data.tracklist.length;t++){
                   var nm = (data.tracklist[t] && data.tracklist[t].title) ? String(data.tracklist[t].title).toLowerCase() : "";
@@ -313,7 +387,6 @@
             delete TRACK_INFLIGHT[String(releaseId)];
             done();
 
-            // live refresh if this release now matches track query or adds country
             var need = needleLC || "";
             var hit = false;
             if(arr && arr.length && need.length>=3){
@@ -337,7 +410,7 @@
     return false;
   }
 
-  /* ---------- Sorting ---------- */
+  /* ======== Sorting ======== */
   function cmpItems(a,b){
     if(a.normArtist < b.normArtist) return -1;
     if(a.normArtist > b.normArtist) return 1;
@@ -355,7 +428,7 @@
     if(aT<bT) return -1; if(aT>bT) return 1; return 0;
   }
 
-  /* ---------- Progress UIs ---------- */
+  /* ======== Progress UIs ======== */
   function updateProgress(){
     var progressTxt=document.getElementById("progressTxt");
     var progressBar=document.getElementById("progressBar");
@@ -411,7 +484,7 @@
     }
   }
 
-  /* ---------- Load & paging ---------- */
+  /* ======== Load & paging ======== */
   function mapReleases(arr){
     return arr.map(function(r){
       var info = r && r.basic_information ? r.basic_information : r || {};
@@ -442,7 +515,7 @@
     var url1 = API + "/api/collection?username=" + encodeURIComponent(USER) +
                "&folder_id=" + folder + "&per_page=" + apiPer + "&page=1";
 
-    get(url1, function(err, data){
+    getWithRetry(url1, function(err, data){
       if(err){ alert(err.message); return; }
 
       var first = [];
@@ -464,7 +537,7 @@
         if(nextPage > totalPages){ finalizeAllItems(cb); return; }
         var url = API + "/api/collection?username=" + encodeURIComponent(USER) +
                   "&folder_id=" + folder + "&per_page=" + apiPer + "&page=" + nextPage;
-        get(url, function(e, d){
+        getWithRetry(url, function(e, d){
           if(!e && d){
             var arr = [];
             if(isArray(d.releases)) arr = d.releases;
@@ -513,13 +586,13 @@
     }
   }
 
-  /* ---------- Search ---------- */
+  /* ======== Search ======== */
   function basicMatches(it, needleLC){
     if(!needleLC) return true;
     if( (it.title||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
     if( (it.artist||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
     if( String(it.year!=null?it.year:"").indexOf(needleLC)>-1 ) return true;
-    if( String(it.master_year!=null?it.master_year:"").indexOf(needleLC)>-1 ) return true; // master release year
+    if( String(it.master_year!=null?it.master_year:"").indexOf(needleLC)>-1 ) return true;
     if( String(it.catno||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
     return false;
   }
@@ -547,6 +620,16 @@
     updateTrackProgress();
   }
 
+  /* ======== Country helpers ======== */
+  function joinYearCountry(year, country){
+    var ys = (year!=null) ? String(year) : "-";
+    var cs = (country && typeof country === "string") ? String(country) : null;
+    return cs ? (ys + " " + cs) : ys;
+  }
+  function countryForItem(it){
+    return RELEASE_COUNTRY[String(it.id)] || null;
+  }
+
   function applyFilterAndPaginate(){
     var lc = String(q||"").toLowerCase();
 
@@ -571,17 +654,7 @@
     warmTrackIndexForQuery(lc);
   }
 
-  /* ---------- Country helpers ---------- */
-  function joinYearCountry(year, country){
-    var ys = (year!=null) ? String(year) : "-";
-    var cs = (country && typeof country === "string") ? String(country) : null;
-    return cs ? (ys + " " + cs) : ys;
-  }
-  function countryForItem(it){
-    // Country appears after we fetch a release (track indexing or opening details)
-    return RELEASE_COUNTRY[String(it.id)] || null;
-  }
-
+  /* ======== Render ======== */
   function render(){
     var grid=document.getElementById("grid");
     var list=document.getElementById("list");
@@ -603,7 +676,7 @@
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
-        var yearStr = joinYearCountry(it.year, countryForItem(it));   // NEW: add country
+        var yearStr = joinYearCountry(it.year, countryForItem(it));
         var masterStr = (it.master_year!=null) ? String(it.master_year) : "-";
         var s=document.createElement("div"); s.className="s";
         s.textContent = it.artist + " • " + yearStr + " • " + masterStr;
@@ -625,7 +698,7 @@
         var metaL=document.createElement("div"); metaL.className="metaL";
         var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
 
-        var yearStr2 = joinYearCountry(it2.year, countryForItem(it2)); // NEW: add country
+        var yearStr2 = joinYearCountry(it2.year, countryForItem(it2));
         var masterStr2 = (it2.master_year!=null) ? String(it2.master_year) : "-";
         var p2 = it2.artist + " • " + yearStr2 + " • " + masterStr2 + (it2.catno ? " • " + it2.catno : "");
         var sL=document.createElement("div"); sL.className="sL"; sL.textContent=p2;
@@ -642,7 +715,7 @@
     document.getElementById("toggle").textContent = (view==="grid") ? "List View" : "Grid View";
   }
 
-  /* ---------- Format helpers ---------- */
+  /* ======== Details ======== */
   function formatFormats(arr){
     if(!arr || !arr.length) return "";
     var out=[], seen={};
@@ -668,12 +741,11 @@
     return out.join(", ");
   }
 
-  /* ---------- Details page ---------- */
   function openDetailsById(id){
     scrollMemo = window.scrollY || document.documentElement.scrollTop || 0;
     fetchRelease(id, function(err, data){
       if(err){ alert("Could not load details: " + err.message); return; }
-      if(data && data.country){ RELEASE_COUNTRY[String(id)] = data.country; }
+      if(data && data.country){ RELEASE_COUNTRY[String(id)] = data.country; saveCountryCacheDebounced(); }
       showDetails(data);
       document.getElementById('listPage').style.display = 'none';
       document.getElementById('detailPage').style.display = 'block';
@@ -846,7 +918,7 @@
     h += '<div class="mini-grid">';
     for(var j=0;j<others.length;j++){
       var it = others[j];
-      var y  = joinYearCountry(it.year, countryForItem(it)); // NEW: add country here too
+      var y  = joinYearCountry(it.year, countryForItem(it));
       var my = (it.master_year!=null) ? String(it.master_year) : "-";
       h += '<div class="mini-card">';
       h += '  <div class="mini-inner" data-id="'+it.id+'">';
@@ -870,6 +942,7 @@
     }
   }
 
+  /* ======== Controls ======== */
   function openRandom(){
     var pool = filteredItems.length ? filteredItems : allItems;
     if(!pool.length){ alert("Collection not loaded yet."); return; }
@@ -893,6 +966,7 @@
   document.getElementById("backBtn").addEventListener("click", backToList);
   document.getElementById("headerRandom").addEventListener("click", function(e){ e.preventDefault(); openRandom(); });
 
+  /* ======== Boot ======== */
   fetchAllItems(function(){ applyFilterAndPaginate(); });
 })();
 </script>
