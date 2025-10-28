@@ -1,21 +1,21 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>DiscoApp · Library</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="version-tag">v1.06e (split)</div>
+  <div class="version-tag">v1.07a</div>
 
   <!-- LIST PAGE -->
   <div id="listPage">
     <header>
       <div class="title">Library</div>
       <div class="search">
-        <span class="mag">🔎</span>
-        <input id="q" placeholder="Search" autocomplete="off">
+        <span class="mag" aria-hidden="true">🔎</span>
+        <input id="q" placeholder="Search" autocomplete="off" aria-label="Search releases">
       </div>
       <div class="info">
         <span id="count">0 of 0</span>
@@ -37,20 +37,20 @@
       <ul id="list" class="list" aria-live="polite"></ul>
     </main>
 
-    <div class="toolbar">
+    <div class="toolbar" role="toolbar" aria-label="Paging and view options">
       <div class="group">
-        <button id="prev" class="btn">◀︎ Prev</button>
-        <button id="next" class="btn">Next ▶︎</button>
-        <button id="random" class="btn accent">🎲 Random</button>
+        <button id="prev" class="btn" type="button">◀︎ Prev</button>
+        <button id="next" class="btn" type="button">Next ▶︎</button>
+        <button id="random" class="btn accent" type="button">🎲 Random</button>
       </div>
       <div class="group">
-        <select id="pageSize" class="select" title="Items per page">
+        <select id="pageSize" class="select" title="Items per page" aria-label="Items per page">
           <option value="25">Show 25</option>
           <option value="50">Show 50</option>
-          <option value="100" selected>Show 100</option>
+          <option value="100">Show 100</option>
           <option value="250">Show 250</option>
         </select>
-        <button id="toggle" class="btn">List View</button>
+        <button id="toggle" class="btn" type="button">List View</button>
       </div>
     </div>
   </div>
@@ -61,7 +61,7 @@
       <div class="detail-topbar">
         <div class="detail-left">
           <a id="backBtn" class="btn" href="#">◀︎ Back</a>
-          <button id="headerRandom" class="btn accent">🎲 Random</button>
+          <button id="headerRandom" class="btn accent" type="button">🎲 Random</button>
         </div>
         <span></span><span></span>
       </div>
@@ -69,6 +69,10 @@
     <div class="detail-body" id="detailBody"></div>
   </div>
 
-  <script defer src="app.js"></script>
+  <!-- ES5, module-free load order (iOS 12 Safari compatible) -->
+  <script src="core.js"></script>
+  <script src="list.js"></script>
+  <script src="detail.js"></script>
+  <script src="boot.js"></script>
 </body>
 </html>
