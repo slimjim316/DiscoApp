@@ -1,0 +1,792 @@
+(function(){
+  /* ====== Config ====== */
+  var API  = "https://disco.slimjim316.workers.dev";
+  var USER = "slimjim316";
+
+  var page=1, per=100, folder=0, total=0, pages=1, q="", view="grid";
+  var allItems = [], filteredItems = [];
+  var scrollMemo = 0;
+
+  var PER_KEY     = 'discoapp_per_page';
+  var COUNTRY_KEY = 'discoapp_country';
+  var TRACKS_KEY  = 'discoapp_tracks';
+
+  (function restorePer(){
+    var saved = parseInt(localStorage.getItem(PER_KEY) || '100', 10);
+    if([25,50,100,250].indexOf(saved) === -1) saved = 100;
+    per = saved;
+    var sel = document.getElementById('pageSize');
+    if(sel){ sel.value = String(per); }
+  })();
+
+  /* ====== Rate limit / 429 handling ====== */
+  var RATE_COOLDOWN_MS = 0;
+  var apiStatusEl = document.getElementById('apiStatus');
+  function showApiStatus(on){ apiStatusEl.style.display = on ? 'inline' : 'none'; }
+
+  function get(url, cb){
+    var delay = RATE_COOLDOWN_MS || 0;
+    function send(){
+      var x=new XMLHttpRequest();
+      x.open("GET", url, true);
+      try { x.setRequestHeader('Accept','application/json'); } catch(e){}
+      x.onreadystatechange=function(){
+        if(x.readyState===4){
+          if(x.status>=200 && x.status<300){
+            var json=null, err=null;
+            try{ json = JSON.parse(x.responseText); } catch(e){ err = new Error("Bad JSON from API"); }
+            cb(err, json);
+          }else{
+            var e = new Error("HTTP "+x.status+" on "+url);
+            if(x.status===429){ e.rateLimit = true; }
+            cb(e, null);
+          }
+        }
+      };
+      x.onerror=function(){ cb(new Error("Network/CORS error on "+url), null); };
+      x.send();
+    }
+    if(delay>0){ setTimeout(send, delay); } else { send(); }
+  }
+  function on429(){
+    RATE_COOLDOWN_MS = Math.min( (RATE_COOLDOWN_MS? Math.round(RATE_COOLDOWN_MS*1.6):800) + Math.floor(Math.random()*400), 8000);
+    showApiStatus(true);
+  }
+  function onSuccessAfter429(){
+    if(RATE_COOLDOWN_MS>0){
+      RATE_COOLDOWN_MS = Math.max( Math.floor(RATE_COOLDOWN_MS*0.8), 0);
+      if(RATE_COOLDOWN_MS===0) showApiStatus(false);
+    }
+  }
+  function getWithRetry(url, cb){
+    var attempt = 0;
+    function tryOnce(){
+      get(url, function(err, data){
+        if(err && err.rateLimit){
+          on429();
+          attempt++;
+          var backoff = Math.min( 1000 * Math.pow(1.5, attempt) + Math.floor(Math.random()*300), 9000);
+          setTimeout(tryOnce, backoff);
+        }else if(err){
+          cb(err, null);
+        }else{
+          onSuccessAfter429();
+          cb(null, data);
+        }
+      });
+    }
+    tryOnce();
+  }
+
+  /* ====== Utils ====== */
+  function isArray(x){ return Object.prototype.toString.call(x) === '[object Array]'; }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+  function validYear(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; }
+  function firstYearFromString(s){ var m = /(\d{4})/.exec(String(s||"")); return m ? validYear(+m[1]) : null; }
+  function normalizeArtist(name){ if(!name) return ""; var s=String(name).replace(/^\s*the\s+/i,""); return s.toLowerCase(); }
+  function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
+
+  /* ====== Master-year cache ====== */
+  var MASTER_YEAR = {};
+  try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
+  function saveMasterYearCache(){ try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){} }
+  var MASTER_INFLIGHT = {};
+  function parseYearFromMaster(data){
+    if(!data) return null;
+    if(typeof data.year === "number") return validYear(data.year);
+    if(typeof data.year === "string" && /^\d{4}$/.test(data.year)) return validYear(+data.year);
+    var r = data.released || data.released_date || "";
+    var m = /^(\d{4})/.exec(r);
+    return m ? validYear(+m[1]) : null;
+  }
+
+  /* ====== Queue / Concurrency ====== */
+  var CONCURRENCY = 6, inflight = 0, queue = [], tickTimer=null;
+  function runQueue(){
+    while(inflight<CONCURRENCY && queue.length){
+      var job = queue.shift();
+      inflight++;
+      job(function(){ inflight--; updateProgress(); updateTrackProgress(); runQueue(); });
+    }
+  }
+
+  /* ====== Country cache (persisted) ====== */
+  var RELEASE_COUNTRY = {};
+  try { RELEASE_COUNTRY = JSON.parse(localStorage.getItem(COUNTRY_KEY) || '{}') || {}; } catch(e){ RELEASE_COUNTRY = {}; }
+  var saveCountryTimer = null;
+  function saveCountryCacheDebounced(){
+    if(saveCountryTimer) return;
+    saveCountryTimer = setTimeout(function(){
+      saveCountryTimer = null;
+      try { localStorage.setItem(COUNTRY_KEY, JSON.stringify(RELEASE_COUNTRY)); } catch(e){}
+    }, 400);
+  }
+
+  /* ====== Track-title cache (persisted) ====== */
+  var TRACK_INDEX = {};
+  try {
+    var _t = JSON.parse(localStorage.getItem(TRACKS_KEY) || '{}') || {};
+    for(var k in _t){ if(_t.hasOwnProperty(k)){ TRACK_INDEX[k] = isArray(_t[k]) ? _t[k] : String(_t[k]||"").split("\n"); } }
+  } catch(e){ TRACK_INDEX = {}; }
+  var TRACK_INFLIGHT = {};
+  var TRACK_MAX_FETCH_PER_QUERY = 30;
+  var TRACK_CANDIDATES = [];
+  var saveTracksTimer = null;
+  function saveTracksCacheDebounced(){
+    if(saveTracksTimer) return;
+    saveTracksTimer = setTimeout(function(){
+      saveTracksTimer = null;
+      try { localStorage.setItem(TRACKS_KEY, JSON.stringify(TRACK_INDEX)); } catch(e){}
+    }, 600);
+  }
+
+  /* ====== API helpers ====== */
+  function fetchMaster(mid, murl, cb){
+    if(!mid){ cb(null,null); return; }
+    if(MASTER_YEAR.hasOwnProperty(mid)){ cb(null, MASTER_YEAR[mid]); return; }
+    if(MASTER_INFLIGHT[mid]){ cb(null,null); return; }
+    MASTER_INFLIGHT[mid] = true;
+
+    var urls = []; if(murl) urls.push(murl);
+    urls.push("https://api.discogs.com/masters/" + encodeURIComponent(mid));
+
+    queue.push(function(done){
+      var i=0;
+      function next(){
+        if(i>=urls.length){ delete MASTER_INFLIGHT[mid]; done(); cb(null,null); return; }
+        var u=urls[i++];
+        getWithRetry(u, function(err, data){
+          var y = !err ? parseYearFromMaster(data) : null;
+          if(!err && y!=null){
+            MASTER_YEAR[mid]=y; saveMasterYearCache();
+            delete MASTER_INFLIGHT[mid]; done(); cb(null,y);
+          }else{
+            next();
+          }
+        });
+      }
+      next();
+    });
+    updateProgress(); runQueue();
+  }
+
+  function fetchRelease(id, cb){ getWithRetry(API + "/api/release?id=" + encodeURIComponent(id), cb); }
+
+  function wantMasters(items){ var list=[], seen={}; for(var i=0;i<items.length;i++){ var m=items[i].master_id; if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:items[i].master_url}); } } return list; }
+
+  function fillMasterYears(items, onDone){
+    var all=wantMasters(items), pending=[], i;
+    for(i=0;i<all.length;i++){ var m=all[i].id; if(!MASTER_YEAR.hasOwnProperty(m) && !MASTER_INFLIGHT[m]) pending.push(all[i]); }
+    if(!pending.length){ updateProgress(); if(onDone) onDone(); return; }
+    var left=pending.length;
+    for(i=0;i<pending.length;i++){ (function(mid,murl){ fetchMaster(mid,murl,function(){ left--; if(left===0){ updateProgress(); if(onDone) onDone(); } }); })(pending[i].id, pending[i].url); }
+    updateProgress();
+  }
+
+  /* ====== Search matching ====== */
+  function basicMatches(it, needleLC){
+    if(!needleLC) return true;
+    if( (it.title||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
+    if( (it.artist||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
+    if( String(it.year!=null?it.year:"").indexOf(needleLC)>-1 ) return true;
+    if( String(it.master_year!=null?it.master_year:"").indexOf(needleLC)>-1 ) return true; // master release year
+    if( String(it.catno||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
+    return false;
+  }
+  function hasTrackMatch(releaseId, needleLC){
+    var list = TRACK_INDEX[String(releaseId)];
+    if(!list || !list.length) return false;
+    for(var i=0;i<list.length;i++){ if(list[i].indexOf(needleLC) > -1) return true; }
+    return false;
+  }
+  function matches(it, needle){
+    var n = String(needle||"");
+    if(!n) return true;
+    var lc = n.toLowerCase();
+    if(basicMatches(it, lc)) return true;
+    if(lc.length >= 3 && hasTrackMatch(it.id, lc)) return true;
+    return false;
+  }
+  function warmTrackIndexForQuery(needle){
+    var lc = String(needle||"").toLowerCase();
+    if(lc.length < 3){ TRACK_CANDIDATES = []; updateTrackProgress(); return; }
+    var candidates = [];
+    for(var i=0;i<allItems.length;i++){
+      var it = allItems[i];
+      if(!basicMatches(it, lc)){ candidates.push(it); }
+    }
+    TRACK_CANDIDATES = candidates;
+    indexTracksFor(candidates, lc);
+    updateTrackProgress();
+  }
+  function indexTracksFor(items, needleLC){
+    var queued = 0;
+    for(var i=0;i<items.length;i++){
+      var it = items[i]; if(!it || !it.id) continue;
+      var rid = String(it.id);
+      if(TRACK_INDEX.hasOwnProperty(rid) || TRACK_INFLIGHT[rid]) continue;
+
+      TRACK_INFLIGHT[rid] = true;
+      queued++;
+      (function(releaseId){
+        queue.push(function(done){
+          fetchRelease(releaseId, function(err, data){
+            var arr=[];
+            if(!err && data){
+              if(data.country){ RELEASE_COUNTRY[String(releaseId)] = data.country; saveCountryCacheDebounced(); }
+              if(data.tracklist && data.tracklist.length){
+                for(var t=0;t<data.tracklist.length;t++){
+                  var nm = (data.tracklist[t] && data.tracklist[t].title) ? String(data.tracklist[t].title).toLowerCase() : "";
+                  if(nm) arr.push(nm);
+                }
+              }
+            }
+            TRACK_INDEX[String(releaseId)] = arr;
+            saveTracksCacheDebounced();
+
+            delete TRACK_INFLIGHT[String(releaseId)];
+            done();
+
+            var hit = false;
+            if(arr && arr.length && needleLC.length>=3){
+              for(var z=0;z<arr.length;z++){ if(arr[z].indexOf(needleLC)>-1){ hit = true; break; } }
+            }
+            if(hit || (RELEASE_COUNTRY[String(releaseId)]!=null)){
+              applyFilterAndPaginate();
+            }
+          });
+        });
+      })(rid);
+      if(queued >= TRACK_MAX_FETCH_PER_QUERY) break;
+    }
+    runQueue();
+  }
+
+  /* ====== Sorting ====== */
+  function cmpItems(a,b){
+    if(a.normArtist < b.normArtist) return -1;
+    if(a.normArtist > b.normArtist) return 1;
+    if(a.isVarious && b.isVarious){
+      var at=(a.title||"").toLowerCase(), bt=(b.title||"").toLowerCase();
+      if(at<bt) return -1; if(at>bt) return 1; return 0;
+    }
+    var am = (a.master_year!=null ? a.master_year : (a.year!=null ? a.year : null));
+    var bm = (b.master_year!=null ? b.master_year : (b.year!=null ? b.year : null));
+    if(am!=null && bm!=null && am!==bm) return am - bm;
+    if(a.master_id && b.master_id && a.master_id===b.master_id){
+      var ar=a.year||0, br=b.year||0; if(ar!==br) return ar - br;
+    }
+    var aT=(a.title||"").toLowerCase(), bT=(b.title||"").toLowerCase();
+    if(aT<bT) return -1; if(aT>bT) return 1; return 0;
+  }
+
+  /* ====== Progress UIs ====== */
+  function wantMasters(items){ var list=[], seen={}; for(var i=0;i<items.length;i++){ var m=items[i].master_id; if(m && !seen[m]){ seen[m]=1; list.push({id:m, url:items[i].master_url}); } } return list; }
+
+  function updateProgress(){
+    var progressTxt=document.getElementById("progressTxt");
+    var progressBar=document.getElementById("progressBar");
+    var progressWrap=document.querySelector(".progress-wrap");
+
+    var all = wantMasters(allItems);
+    var totalMasters = all.length;
+    var resolved=0, i; for(i=0;i<all.length;i++){ if(MASTER_YEAR.hasOwnProperty(all[i].id)) resolved++; }
+    var active=0; for(var k in MASTER_INFLIGHT){ if(MASTER_INFLIGHT.hasOwnProperty(k)) active++; }
+
+    var pct = totalMasters ? Math.round((resolved/totalMasters)*100) : 0;
+    progressBar.style.width = pct + "%";
+
+    if(totalMasters && pct===100 && !active){
+      progressWrap.style.display = "none";
+      progressTxt.style.display = "none";
+    }else{
+      progressWrap.style.display = "block";
+      progressTxt.style.display = "inline";
+      progressTxt.textContent = "Master years: " + resolved + " / " + totalMasters + " (" + active + " active)";
+    }
+  }
+
+  function updateTrackProgress(){
+    var txt  = document.getElementById("trackProgressTxt");
+    var wrap = document.getElementById("trackProgressWrap");
+    var bar  = document.getElementById("trackProgressBar");
+
+    var total = TRACK_CANDIDATES.length;
+    if(!q || String(q).length<3 || total===0){
+      txt.style.display = "none";
+      wrap.style.display = "none";
+      return;
+    }
+
+    var resolved = 0, active = 0, i;
+    for(i=0;i<TRACK_CANDIDATES.length;i++){
+      var id = String(TRACK_CANDIDATES[i].id);
+      if(TRACK_INDEX.hasOwnProperty(id)) resolved++;
+    }
+    for(var k in TRACK_INFLIGHT){ if(TRACK_INFLIGHT.hasOwnProperty(k)) active++; }
+
+    var pct = total ? Math.round((resolved/total)*100) : 0;
+    bar.style.width = pct + "%";
+
+    if(total && pct===100 && !active){
+      wrap.style.display = "none";
+      txt.style.display  = "none";
+    }else{
+      wrap.style.display = "block";
+      txt.style.display  = "inline";
+      txt.textContent = "Track titles: " + resolved + " / " + total + " (" + active + " active)";
+    }
+  }
+
+  /* ====== Load & paging ====== */
+  function mapReleases(arr){
+    return arr.map(function(r){
+      var info = r && r.basic_information ? r.basic_information : r || {};
+      var artistsArr = info.artists || [];
+      var firstArtist = artistsArr[0] && artistsArr[0].name ? artistsArr[0].name : (info.artist || "");
+      var lbls = info.labels || [];
+      var firstLbl = lbls[0] || {};
+      var mid = info.master_id || r.master_id || null;
+      var norm = normalizeArtist(firstArtist);
+      return {
+        id: info.id || r.id,
+        title: info.title || "",
+        artist: firstArtist,
+        normArtist: isVarious(firstArtist) ? "various" : norm,
+        isVarious: isVarious(firstArtist),
+        year: validYear((typeof info.year==="number"||typeof info.year==="string")?info.year:null),
+        master_id: mid,
+        master_url: info.master_url || (mid ? ("https://api.discogs.com/masters/"+mid) : null),
+        master_year: (mid && MASTER_YEAR[mid]!=null) ? validYear(MASTER_YEAR[mid]) : null,
+        catno: firstLbl.catno || info.catno || "",
+        thumb: info.cover_image || info.thumb || ""
+      };
+    });
+  }
+
+  function fetchAllItems(cb){
+    var apiPer = 100;
+    var url1 = API + "/api/collection?username=" + encodeURIComponent(USER) +
+               "&folder_id=" + folder + "&per_page=" + apiPer + "&page=1";
+
+    getWithRetry(url1, function(err, data){
+      if(err){ alert(err.message); return; }
+
+      var first = [];
+      if(data){
+        if(isArray(data.releases)) first = data.releases;
+        else if(isArray(data.items)) first = data.items;
+        else if(isArray(data.results)) first = data.results;
+        else if(isArray(data)) first = data;
+      }
+      total = (data && data.pagination && data.pagination.items) ? data.pagination.items : first.length;
+      var totalPages = (data && data.pagination && data.pagination.pages) ? data.pagination.pages : Math.ceil(total / apiPer);
+
+      allItems = mapReleases(first);
+
+      if(totalPages <= 1){ finalizeAllItems(cb); return; }
+
+      var nextPage = 2;
+      function loadNext(){
+        if(nextPage > totalPages){ finalizeAllItems(cb); return; }
+        var url = API + "/api/collection?username=" + encodeURIComponent(USER) +
+                  "&folder_id=" + folder + "&per_page=" + apiPer + "&page=" + nextPage;
+        getWithRetry(url, function(e, d){
+          if(!e && d){
+            var arr = [];
+            if(isArray(d.releases)) arr = d.releases;
+            else if(isArray(d.items)) arr = d.items;
+            else if(isArray(d.results)) arr = d.results;
+            else if(isArray(d)) arr = d;
+            allItems = allItems.concat(mapReleases(arr));
+          }
+          nextPage++;
+          loadNext();
+        });
+      }
+      loadNext();
+    });
+  }
+
+  function finalizeAllItems(cb){
+    allItems.sort(cmpItems);
+
+    updateProgress();
+    fillMasterYears(allItems, function(){
+      var changed=false, i;
+      for(i=0;i<allItems.length;i++){
+        var it=allItems[i];
+        if(it.master_id && it.master_year==null && MASTER_YEAR.hasOwnProperty(it.master_id)){
+          var vy = validYear(MASTER_YEAR[it.master_id]);
+          if(vy!=null){ it.master_year = vy; changed = true; }
+        }
+      }
+      if(changed){ allItems.sort(cmpItems); }
+      updateProgress();
+      applyFilterAndPaginate();
+      if(typeof cb==="function") cb();
+    });
+
+    if(!tickTimer){
+      tickTimer = setInterval(function(){
+        fillMasterYears(allItems, function(){});
+        updateProgress();
+        var all = wantMasters(allItems), done=true, i;
+        for(i=0;i<all.length;i++){ if(!MASTER_YEAR.hasOwnProperty(all[i].id)) { done=false; break; } }
+        if(done && !Object.keys(MASTER_INFLIGHT).length){
+          clearInterval(tickTimer); tickTimer=null;
+        }
+      }, 4000);
+    }
+  }
+
+  /* ====== Country helpers ====== */
+  function joinYearCountry(year, country){
+    var ys = (year!=null) ? String(year) : "-";
+    var cs = (country && typeof country === "string") ? String(country) : null;
+    return cs ? (ys + " " + cs) : ys;
+  }
+  function countryForItem(it){ return RELEASE_COUNTRY[String(it.id)] || null; }
+
+  /* ====== Apply filter & render ====== */
+  function applyFilterAndPaginate(){
+    var lc = String(q||"").toLowerCase();
+
+    filteredItems = [];
+    for(var i=0;i<allItems.length;i++){ if(matches(allItems[i], q)) filteredItems.push(allItems[i]); }
+
+    pages = Math.max(1, Math.ceil(filteredItems.length / (per || 1)));
+    if(page > pages) page = pages;
+
+    var start = (page-1) * per;
+    var end   = Math.min(start + per, filteredItems.length);
+    var countEl = document.getElementById("count");
+    if(filteredItems.length===0){
+      countEl.textContent = "0 of 0";
+    }else{
+      countEl.textContent = (start+1) + "-" + end + " of " + filteredItems.length;
+    }
+
+    document.getElementById("page").textContent = "Page " + page;
+    render();
+
+    warmTrackIndexForQuery(lc);
+  }
+
+  function render(){
+    var grid=document.getElementById("grid");
+    var list=document.getElementById("list");
+    grid.innerHTML=""; list.innerHTML="";
+
+    var start = (page-1) * per;
+    var end   = start + per;
+    var pageSlice = filteredItems.slice(start, end);
+
+    if(view==="grid"){
+      grid.style.display="flex"; list.style.display="none";
+      for(var i=0;i<pageSlice.length;i++){
+        var it=pageSlice[i];
+        var card=document.createElement("div"); card.className="card";
+        var inner=document.createElement("div"); inner.className="cardInner";
+        var wrap=document.createElement("div"); wrap.className="artWrap";
+        var img=document.createElement("img"); img.className="art"; img.alt=""; img.src=it.thumb||"";
+        // perf hints
+        try { img.decoding = 'async'; } catch(e){}
+        try { img.loading = 'lazy'; } catch(e){}
+        wrap.appendChild(img);
+        var meta=document.createElement("div"); meta.className="meta";
+        var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
+
+        var yearStr = joinYearCountry(it.year, countryForItem(it));
+        var masterStr = (it.master_year!=null) ? String(it.master_year) : "-";
+        var s=document.createElement("div"); s.className="s";
+        s.textContent = it.artist + " • " + yearStr + " • " + masterStr;
+
+        meta.appendChild(t); meta.appendChild(s);
+        inner.appendChild(wrap); inner.appendChild(meta);
+        card.appendChild(inner);
+        card.addEventListener("click",(function(id){return function(){openDetailsById(id);};})(it.id));
+        grid.appendChild(card);
+      }
+    }else{
+      grid.style.display="none"; list.style.display="block";
+      for(var j=0;j<pageSlice.length;j++){
+        var it2=pageSlice[j];
+        var li=document.createElement("li"); li.className="row";
+        var tw=document.createElement("div"); tw.className="thumbWrap";
+        var th=document.createElement("img"); th.className="thumb"; th.alt=""; th.src=it2.thumb||"";
+        try { th.decoding = 'async'; } catch(e){}
+        try { th.loading = 'lazy'; } catch(e){}
+        tw.appendChild(th);
+        var metaL=document.createElement("div"); metaL.className="metaL";
+        var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
+
+        var yearStr2 = joinYearCountry(it2.year, countryForItem(it2));
+        var masterStr2 = (it2.master_year!=null) ? String(it2.master_year) : "-";
+        var p2 = it2.artist + " • " + yearStr2 + " • " + masterStr2 + (it2.catno ? " • " + it2.catno : "");
+        var sL=document.createElement("div"); sL.className="sL"; sL.textContent=p2;
+
+        metaL.appendChild(tL); metaL.appendChild(sL);
+        li.appendChild(tw); li.appendChild(metaL);
+        li.addEventListener("click",(function(id){return function(){openDetailsById(id);};})(it2.id));
+        list.appendChild(li);
+      }
+    }
+
+    document.getElementById("prev").disabled = page<=1;
+    document.getElementById("next").disabled = page>=pages;
+    document.getElementById("toggle").textContent = (view==="grid") ? "List View" : "Grid View";
+  }
+
+  /* ====== Details ====== */
+  function formatFormats(arr){
+    if(!arr || !arr.length) return "";
+    var out=[], seen={};
+    for(var i=0;i<arr.length;i++){
+      var f=arr[i]||{};
+      var base = "";
+      var qty = (f.qty!=null && String(f.qty) !== "" && String(f.qty) !== "1") ? (String(f.qty) + "×") : "";
+      if(f.name){
+        base = qty + String(f.name);
+        if(!seen[base]){ out.push(base); seen[base]=1; }
+      }
+      if(f.descriptions && f.descriptions.length){
+        for(var j=0;j<f.descriptions.length;j++){
+          var d=String(f.descriptions[j]);
+          if(!seen[d]){ out.push(d); seen[d]=1; }
+        }
+      }
+      if(f.text){
+        var t=String(f.text);
+        if(!seen[t]){ out.push(t); seen[t]=1; }
+      }
+    }
+    return out.join(", ");
+  }
+
+  function openDetailsById(id){
+    scrollMemo = window.scrollY || document.documentElement.scrollTop || 0;
+    fetchRelease(id, function(err, data){
+      if(err){ alert("Could not load details: " + err.message); return; }
+      if(data && data.country){ RELEASE_COUNTRY[String(id)] = data.country; saveCountryCacheDebounced(); }
+      showDetails(data);
+      document.getElementById('listPage').style.display = 'none';
+      document.getElementById('detailPage').style.display = 'block';
+      window.scrollTo(0,0);
+    });
+  }
+
+  function backToList(e){
+    if(e) e.preventDefault();
+    document.getElementById('detailPage').style.display = 'none';
+    document.getElementById('listPage').style.display = 'block';
+    window.scrollTo(0, scrollMemo||0);
+  }
+
+  function showDetails(release){
+    var body = document.getElementById("detailBody");
+    var title   = release.title || "";
+    var artists = (release.artists && release.artists[0] ? release.artists[0].name : "");
+    var year    = validYear(release.year);
+    var art     = (release.images && release.images[0] ? release.images[0].uri : "");
+
+    var labelName = "", catno = "";
+    if (release.labels && release.labels[0]) {
+      labelName = release.labels[0].name || "";
+      catno     = release.labels[0].catno || "";
+    }
+
+    var formatFull = formatFormats(release.formats);
+    var country    = release.country || "";
+    var rawRel     = release.released || release.released_formatted || "";
+    var releasedYr = firstYearFromString(rawRel) || (year!=null? year : null);
+    var genres = (release.genres ? release.genres.join(", ") : "");
+    var styles = (release.styles ? release.styles.join(", ") : "");
+
+    var masterYear = null;
+    if (release.master_id && MASTER_YEAR[release.master_id] != null) {
+      masterYear = validYear(MASTER_YEAR[release.master_id]);
+    }
+
+    function parseDurToSec(d){
+      if(!d) return 0;
+      var parts = String(d).trim().split(":").map(function(x){ return parseInt(x,10) || 0; });
+      if(parts.length === 1) return parts[0];
+      if(parts.length === 2) return parts[0]*60 + parts[1];
+      if(parts.length >= 3)  return parts[0]*3600 + parts[1]*60 + parts[2];
+      return 0;
+    }
+
+    var trackCount = 0, totalSec = 0;
+    if (release.tracklist && release.tracklist.length) {
+      for (var i=0;i<release.tracklist.length;i++){
+        var t = release.tracklist[i];
+        if (t && t.title) trackCount++;
+        if (t && t.duration) totalSec += parseDurToSec(t.duration);
+      }
+    }
+    var totalMinutes = Math.round(totalSec / 60);
+
+    var pCopyright = "";
+    if (release.companies && release.companies.length){
+      for (var c=0;c<release.companies.length;c++){
+        var co = release.companies[c];
+        var type = (co.entity_type_name || co.entity_type || "").toLowerCase();
+        if (type.indexOf("phonographic") !== -1){
+          var name = co.name || "";
+          var yr   = releasedYr ? releasedYr : (year || "");
+          pCopyright = "℗ " + (yr ? (yr + " ") : "") + name;
+          break;
+        }
+      }
+    }
+    if (!pCopyright && release.copyright) {
+      pCopyright = "℗ " + release.copyright;
+    }
+
+    var h = '';
+    h += '<div class="md-head" id="md-head-block">';
+    h += '  <div class="md-art" id="md-art"><img id="md-art-img" alt="" src="'+(art||'')+'"></div>';
+    h += '  <div class="md-info" id="md-info">';
+    h += '    <div class="md-title" id="md-album-title">'+escapeHtml(title)+'</div>';
+    if (artists) h += '    <div class="md-artist" id="md-artist">'+escapeHtml(artists)+'</div>';
+
+    h += '    <div class="md-lines">';
+    var lineLabel = (labelName || catno) ? (escapeHtml(labelName) + (catno ? (" – " + escapeHtml(catno)) : "")) : "-";
+    h += '      <div class="line"><span class="muted">Label</span> '   + (lineLabel || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Format</span> '  + (escapeHtml(formatFull || "")) +'</div>';
+    h += '      <div class="line"><span class="muted">Country</span> ' + (country || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Released</span> '+ (releasedYr!=null ? releasedYr : "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Genre</span> '   + (genres || "-") +'</div>';
+    h += '      <div class="line"><span class="muted">Style</span> '   + (styles || "-") +'</div>';
+    h += '    </div>';
+
+    h += '  </div>';
+    h += '</div>';
+
+    if (release.tracklist && release.tracklist.length){
+      h += '<ul class="tracks">';
+      for (var i2=0;i2<release.tracklist.length;i2++){
+        var tt = release.tracklist[i2] || {};
+        var nm = tt.title || "";
+        var pos = tt.position || (i2+1);
+        var dur = tt.duration || "";
+        h += '<li class="tr">';
+        h += ' <div class="no">'+escapeHtml(String(pos))+'</div>';
+        h += ' <div class="twrap"><div class="name">'+escapeHtml(nm)+'</div></div>';
+        h += ' <div class="dur">'+escapeHtml(dur)+'</div>';
+        h += '</li>';
+      }
+      h += '</ul>';
+    }
+
+    h += '<div class="detail-foot"><span class="muted">Master release</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
+    var songsLine = (trackCount ? (trackCount + ' song' + (trackCount>1?'s':'') + (totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
+    h += '<div class="detail-foot">' + songsLine + '</div>';
+    if (pCopyright){ h += '<div class="detail-foot">' + escapeHtml(pCopyright) + '</div>'; }
+    if (release.uri){ h += '<a class="deep-link" target="_blank" rel="noopener" href="'+release.uri+'">Open in Discogs ↗</a>'; }
+
+    h += '<div id="moreByMount" class="more-wrap" style="display:none;"></div>';
+
+    body.innerHTML = h;
+
+    function sizeArt(){
+      var head  = document.getElementById('md-head-block');
+      var artEl = document.getElementById('md-art');
+      var info  = document.getElementById('md-info');
+      if(!head || !artEl || !info) return;
+
+      var stacked = (window.getComputedStyle(head).flexDirection === 'column');
+      if(stacked){
+        var w = artEl.clientWidth;
+        if(w>0){ artEl.style.height = w + 'px'; }
+      }else{
+        var baseTop   = info.getBoundingClientRect().top;
+        var titleTop  = Math.max(0, document.getElementById('md-album-title').getBoundingClientRect().top - baseTop);
+        var infoH     = Math.max(info.scrollHeight, info.getBoundingClientRect().height);
+        var hpx       = Math.max(160, Math.round(infoH - titleTop));
+        artEl.style.height = hpx + 'px';
+        artEl.style.width  = hpx + 'px';
+      }
+    }
+    requestAnimationFrame(sizeArt);
+    setTimeout(sizeArt, 50); setTimeout(sizeArt, 250);
+    var imgEl = document.getElementById('md-art-img'); if(imgEl){ imgEl.onload = sizeArt; }
+    window.addEventListener('resize', sizeArt);
+
+    renderMoreBy(artists, release.id);
+  }
+
+  function renderMoreBy(artistName, excludeId){
+    if(isVarious(artistName)){ return; }
+    var targetNorm = normalizeArtist(artistName);
+    var others = [];
+    for(var i=0;i<allItems.length;i++){
+      var it = allItems[i];
+      if(it && !it.isVarious && it.normArtist === targetNorm && String(it.id) !== String(excludeId)){
+        others.push(it);
+      }
+    }
+    if(!others.length){ return; }
+    others.sort(cmpItems);
+
+    var mount = document.getElementById('moreByMount');
+    if(!mount) return;
+    mount.style.display = 'block';
+
+    var h = '';
+    h += '<div class="more-title">More by '+escapeHtml(artistName)+'</div>';
+    h += '<div class="mini-grid">';
+    for(var j=0;j<others.length;j++){
+      var it = others[j];
+      var y  = joinYearCountry(it.year, countryForItem(it));
+      var my = (it.master_year!=null) ? String(it.master_year) : "-";
+      h += '<div class="mini-card">';
+      h += '  <div class="mini-inner" data-id="'+it.id+'">';
+      h += '    <div class="mini-artWrap"><img class="mini-art" alt="" src="'+(it.thumb||'')+'"></div>';
+      h += '    <div class="mini-meta">';
+      h += '      <div class="mini-t">'+escapeHtml(it.title||'')+'</div>';
+      h += '      <div class="mini-s">'+y+' • '+my+'</div>';
+      h += '    </div>';
+      h += '  </div>';
+      h += '</div>';
+    }
+    h += '</div>';
+    mount.innerHTML = h;
+
+    var cards = mount.getElementsByClassName('mini-inner');
+    for(var k=0;k<cards.length;k++){
+      (function(el){
+        var rid = el.getAttribute('data-id');
+        el.addEventListener('click', function(){ openDetailsById(rid); });
+      })(cards[k]);
+    }
+  }
+
+  /* ====== Controls ====== */
+  function openRandom(){
+    var pool = filteredItems.length ? filteredItems : allItems;
+    if(!pool.length){ alert("Collection not loaded yet."); return; }
+    var idx=Math.floor(Math.random()*pool.length);
+    openDetailsById(pool[idx].id);
+  }
+
+  document.getElementById("q").addEventListener("input", function(e){ q=e.target.value; page=1; applyFilterAndPaginate(); });
+  document.getElementById("prev").addEventListener("click", function(){ if(page>1){ page--; applyFilterAndPaginate(); } });
+  document.getElementById("next").addEventListener("click", function(){ if(page<pages){ page++; applyFilterAndPaginate(); } });
+  document.getElementById("random").addEventListener("click", openRandom);
+  document.getElementById("toggle").addEventListener("click", function(){ view=(view==="grid")?"list":"grid"; render(); });
+  document.getElementById("pageSize").addEventListener("change", function(e){
+    var v = parseInt(e.target.value, 10);
+    per = (!isNaN(v) && [25,50,100,250].indexOf(v) !== -1) ? v : 100;
+    localStorage.setItem(PER_KEY, String(per));
+    page = 1;
+    applyFilterAndPaginate();
+  });
+
+  document.getElementById("backBtn").addEventListener("click", backToList);
+  document.getElementById("headerRandom").addEventListener("click", function(e){ e.preventDefault(); openRandom(); });
+
+  /* ====== Boot ====== */
+  fetchAllItems(function(){ applyFilterAndPaginate(); });
+})();
