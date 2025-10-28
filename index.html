@@ -11,7 +11,6 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
 
-  /* Version tag */
   .version-tag { position: fixed; top: 6px; right: 10px; font-size: 12px; color: var(--muted); opacity: .6; user-select: none; z-index: 50; }
 
   header{ position:sticky; top:0; z-index:10; background:var(--bg); padding:8px 12px 6px; border-bottom:1px solid var(--hair); }
@@ -20,12 +19,11 @@
   .search input{flex:1;border:0;background:transparent;outline:none;font-size:16px;color:var(--text)}
   .search .mag{opacity:.6}
   .info{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding:8px 2px 6px}
-  .info-right{display:flex;gap:12px;align-items:center}
+  .info-right{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .progress-wrap{width:180px;height:6px;border-radius:999px;background:var(--hair);overflow:hidden}
   .progress-bar{height:100%;width:0%;background:var(--bar);transition:width .25s ease; }
   main{padding:10px 10px 90px}
 
-  /* Grid cards */
   .grid{ display:flex; flex-wrap:wrap; margin:-6px; }
   .card{ width:20%; padding:6px; }
   .cardInner{ background:var(--bg); border:1px solid var(--hair); border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; height:100%;}
@@ -39,7 +37,6 @@
   @media (max-width:600px) { .card{width:50%} }
   @media (max-width:380px) { .card{width:100%} }
 
-  /* List rows */
   .list{list-style:none; padding:0; margin:0; display:none;}
   .row{display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid var(--hair); cursor:pointer}
   .thumbWrap{position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden; background:#ddd; margin-right:12px}
@@ -48,7 +45,6 @@
   .tL{font-weight:700;font-size:16px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sL{margin-top:2px;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* Toolbar */
   .toolbar{ position:fixed; left:0; right:0; bottom:0; background:var(--bg); border-top:1px solid var(--hair);
     display:flex; gap:8px; align-items:center; justify-content:space-between; padding:10px 12px; }
   .group{display:flex; gap:8px; align-items:center}
@@ -59,7 +55,6 @@
     background-image:linear-gradient(45deg,transparent 50%,#666 50%),linear-gradient(135deg,#666 50%,transparent 50%);
     background-position:calc(100% - 18px) 16px, calc(100% - 12px) 16px; background-size:6px 6px; background-repeat:no-repeat;}
 
-  /* ===== Full-page Details ===== */
   #listPage{ display:block; }
   #detailPage{ display:none; min-height:100vh; }
   .detail-header{ position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--hair); z-index:9; padding:8px 12px; }
@@ -78,7 +73,6 @@
   .md-lines .line{ font-size:14px; color:var(--text); margin:4px 0; }
   .md-lines .muted{ color:var(--muted); }
 
-  /* Tracklist */
   .tracks{list-style:none; padding:0; margin:0}
   .tr{display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--hair)}
   .tr:last-child{ border-bottom:0 }
@@ -87,12 +81,10 @@
   .tr .name{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tr .dur{width:44px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted)}
 
-  /* Footer + deep link */
   .detail-foot{ font-size:16px; margin-top:4px; }
   .deep-link{ display:inline-block; margin-top:12px; color:var(--red); text-decoration:none; font-size:16px; }
   .deep-link:hover{ text-decoration:underline; }
 
-  /* ===== More by Artist (mini grid) ===== */
   .more-wrap{ margin-top:18px; }
   .more-title{ font-weight:700; margin:12px 0 6px 0; }
   .mini-grid{ display:flex; flex-wrap:wrap; margin:-5px; }
@@ -117,7 +109,7 @@
 </head>
 <body>
 
-<div class="version-tag">v1.06a</div>
+<div class="version-tag">v1.06b</div>
 
 <!-- ===== LIST PAGE ===== -->
 <div id="listPage">
@@ -130,8 +122,13 @@
     <div class="info">
       <span id="count">0 of 0</span>
       <div class="info-right">
+        <!-- Master-year progress (existing) -->
         <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
         <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
+        <!-- NEW: Track-index progress (mirrors style) -->
+        <span id="trackProgressTxt" style="display:none;">Track titles: 0 / 0 (0 active)</span>
+        <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;"><div id="trackProgressBar" class="progress-bar"></div></div>
+
         <span id="page">Page 1</span>
       </div>
     </div>
@@ -160,7 +157,7 @@
   </div>
 </div>
 
-<!-- ===== DETAILS PAGE (full page) ===== -->
+<!-- ===== DETAILS PAGE ===== -->
 <div id="detailPage" role="document" aria-live="polite">
   <div class="detail-header">
     <div class="detail-topbar">
@@ -168,8 +165,7 @@
         <a id="backBtn" class="btn" href="#">◀︎ Back</a>
         <button id="headerRandom" class="btn accent">🎲 Random</button>
       </div>
-      <span></span>
-      <span></span>
+      <span></span><span></span>
     </div>
   </div>
   <div class="detail-body" id="detailBody"></div>
@@ -177,14 +173,11 @@
 
 <script>
 (function(){
-  /* ---------- CONFIG ---------- */
   var API  = "https://disco.slimjim316.workers.dev";
   var USER = "slimjim316";
 
-  /* ---------- STATE ---------- */
   var page=1, per=100, folder=0, total=0, pages=1, q="", view="grid";
-  var allItems = [];
-  var filteredItems = [];
+  var allItems = [], filteredItems = [];
   var scrollMemo = 0;
 
   var PER_KEY = 'discoapp_per_page';
@@ -197,7 +190,6 @@
     if(sel){ sel.value = String(per); }
   })();
 
-  /* ---------- AJAX (ES5) ---------- */
   function get(url, cb){
     var x=new XMLHttpRequest();
     x.open("GET", url, true);
@@ -206,19 +198,15 @@
       if(x.readyState===4){
         if(x.status>=200 && x.status<300){
           var json=null, err=null;
-          try{ json = JSON.parse(x.responseText); }
-          catch(e){ err = new Error("Bad JSON from API"); }
+          try{ json = JSON.parse(x.responseText); } catch(e){ err = new Error("Bad JSON from API"); }
           cb(err, json);
-        }else{
-          cb(new Error("HTTP "+x.status+" on "+url));
-        }
+        }else cb(new Error("HTTP "+x.status+" on "+url));
       }
     };
     x.onerror=function(){ cb(new Error("Network/CORS error on "+url)); };
     x.send();
   }
 
-  /* ---------- Utils ---------- */
   function isArray(x){ return Object.prototype.toString.call(x) === '[object Array]'; }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
   function validYear(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; }
@@ -226,7 +214,6 @@
   function normalizeArtist(name){ if(!name) return ""; var s=String(name).replace(/^\s*the\s+/i,""); return s.toLowerCase(); }
   function isVarious(name){ return /^\s*various\s*$/i.test(name||""); }
 
-  /* ---------- Master-year cache ---------- */
   var MASTER_YEAR = {};
   try { MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ MASTER_YEAR = {}; }
   function saveMasterYearCache(){ try { localStorage.setItem('discoapp_master_year', JSON.stringify(MASTER_YEAR)); } catch(e){} }
@@ -241,18 +228,16 @@
     return m ? validYear(+m[1]) : null;
   }
 
-  /* ---------- Queues (masters + tracks) ---------- */
   var CONCURRENCY = 6, inflight = 0, queue = [], tickTimer=null;
 
   function runQueue(){
     while(inflight<CONCURRENCY && queue.length){
       var job = queue.shift();
       inflight++;
-      job(function(){ inflight--; updateProgress(); runQueue(); });
+      job(function(){ inflight--; updateProgress(); updateTrackProgress(); runQueue(); });
     }
   }
 
-  /* Masters */
   function fetchMaster(masterId, masterUrl, cb){
     if(!masterId){ cb(null,null); return; }
     if(MASTER_YEAR.hasOwnProperty(masterId)){ cb(null, MASTER_YEAR[masterId]); return; }
@@ -293,46 +278,49 @@
     updateProgress();
   }
 
-  /* ---------- Track-title indexing (in-memory) ---------- */
+  /* ---------- Track-title indexing ---------- */
   var TRACK_INDEX = {};        // { releaseId: [lowercased track titles...] }
   var TRACK_INFLIGHT = {};     // { releaseId: true }
-  var TRACK_CONC_PER_QUERY = 4;
   var TRACK_MAX_FETCH_PER_QUERY = 30;
+  var TRACK_CANDIDATES = [];   // current-query candidates for progress
+  var RELEASE_COUNTRY = {};    // releaseId -> country (captured when we fetch details)
 
   function fetchRelease(id, cb){ get(API + "/api/release?id=" + encodeURIComponent(id), cb); }
 
   function indexTracksFor(items, needleLC){
-    // Fetch up to N releases that aren't indexed yet; low concurrency piggybacks on main queue
     var queued = 0;
     for(var i=0;i<items.length;i++){
-      var it = items[i];
-      if(!it || !it.id) continue;
+      var it = items[i]; if(!it || !it.id) continue;
       var rid = String(it.id);
       if(TRACK_INDEX.hasOwnProperty(rid) || TRACK_INFLIGHT[rid]) continue;
-      // Queue fetch
+
       TRACK_INFLIGHT[rid] = true;
       queued++;
       (function(releaseId){
         queue.push(function(done){
           fetchRelease(releaseId, function(err, data){
             var arr=[];
-            if(!err && data && data.tracklist && data.tracklist.length){
-              for(var t=0;t<data.tracklist.length;t++){
-                var nm = (data.tracklist[t] && data.tracklist[t].title) ? String(data.tracklist[t].title).toLowerCase() : "";
-                if(nm) arr.push(nm);
+            if(!err && data){
+              if(data.country){ RELEASE_COUNTRY[String(releaseId)] = data.country; }
+              if(data.tracklist && data.tracklist.length){
+                for(var t=0;t<data.tracklist.length;t++){
+                  var nm = (data.tracklist[t] && data.tracklist[t].title) ? String(data.tracklist[t].title).toLowerCase() : "";
+                  if(nm) arr.push(nm);
+                }
               }
             }
             TRACK_INDEX[String(releaseId)] = arr;
             delete TRACK_INFLIGHT[String(releaseId)];
             done();
-            // If this newly indexed release matches the current needle, refresh view
-            if(arr.length){
-              for(var k=0;k<arr.length;k++){
-                if(arr[k].indexOf(needleLC) > -1){
-                  applyFilterAndPaginate(); // cheap refresh
-                  break;
-                }
-              }
+
+            // live refresh if this release now matches track query or adds country
+            var need = needleLC || "";
+            var hit = false;
+            if(arr && arr.length && need.length>=3){
+              for(var k=0;k<arr.length;k++){ if(arr[k].indexOf(need)>-1){ hit = true; break; } }
+            }
+            if(hit || (RELEASE_COUNTRY[String(releaseId)]!=null)){
+              applyFilterAndPaginate();
             }
           });
         });
@@ -345,13 +333,11 @@
   function hasTrackMatch(releaseId, needleLC){
     var list = TRACK_INDEX[String(releaseId)];
     if(!list || !list.length) return false;
-    for(var i=0;i<list.length;i++){
-      if(list[i].indexOf(needleLC) > -1) return true;
-    }
+    for(var i=0;i<list.length;i++){ if(list[i].indexOf(needleLC) > -1) return true; }
     return false;
   }
 
-  /* ---------- Sorting helpers ---------- */
+  /* ---------- Sorting ---------- */
   function cmpItems(a,b){
     if(a.normArtist < b.normArtist) return -1;
     if(a.normArtist > b.normArtist) return 1;
@@ -369,7 +355,7 @@
     if(aT<bT) return -1; if(aT>bT) return 1; return 0;
   }
 
-  /* ---------- Progress UI ---------- */
+  /* ---------- Progress UIs ---------- */
   function updateProgress(){
     var progressTxt=document.getElementById("progressTxt");
     var progressBar=document.getElementById("progressBar");
@@ -393,7 +379,39 @@
     }
   }
 
-  /* ---------- Client-side load & paging ---------- */
+  function updateTrackProgress(){
+    var txt  = document.getElementById("trackProgressTxt");
+    var wrap = document.getElementById("trackProgressWrap");
+    var bar  = document.getElementById("trackProgressBar");
+
+    var total = TRACK_CANDIDATES.length;
+    if(!q || String(q).length<3 || total===0){
+      txt.style.display = "none";
+      wrap.style.display = "none";
+      return;
+    }
+
+    var resolved = 0, active = 0, i;
+    for(i=0;i<TRACK_CANDIDATES.length;i++){
+      var id = String(TRACK_CANDIDATES[i].id);
+      if(TRACK_INDEX.hasOwnProperty(id)) resolved++;
+    }
+    for(var k in TRACK_INFLIGHT){ if(TRACK_INFLIGHT.hasOwnProperty(k)) active++; }
+
+    var pct = total ? Math.round((resolved/total)*100) : 0;
+    bar.style.width = pct + "%";
+
+    if(total && pct===100 && !active){
+      wrap.style.display = "none";
+      txt.style.display  = "none";
+    }else{
+      wrap.style.display = "block";
+      txt.style.display  = "inline";
+      txt.textContent = "Track titles: " + resolved + " / " + total + " (" + active + " active)";
+    }
+  }
+
+  /* ---------- Load & paging ---------- */
   function mapReleases(arr){
     return arr.map(function(r){
       var info = r && r.basic_information ? r.basic_information : r || {};
@@ -501,7 +519,7 @@
     if( (it.title||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
     if( (it.artist||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
     if( String(it.year!=null?it.year:"").indexOf(needleLC)>-1 ) return true;
-    if( String(it.master_year!=null?it.master_year:"").indexOf(needleLC)>-1 ) return true; // NEW: master release year
+    if( String(it.master_year!=null?it.master_year:"").indexOf(needleLC)>-1 ) return true; // master release year
     if( String(it.catno||"").toLowerCase().indexOf(needleLC)>-1 ) return true;
     return false;
   }
@@ -510,26 +528,23 @@
     var n = String(needle||"");
     if(!n) return true;
     var lc = n.toLowerCase();
-    // If basic fields match, we're done
     if(basicMatches(it, lc)) return true;
-    // If long enough query, also check any indexed tracks for this item
     if(lc.length >= 3 && hasTrackMatch(it.id, lc)) return true;
     return false;
   }
 
-  // Warm the track index when the query is 3+ chars:
-  // - focuses on items that *didn't* match basic fields (likely track matches)
-  // - fetches up to TRACK_MAX_FETCH_PER_QUERY per query change
   function warmTrackIndexForQuery(needle){
     var lc = String(needle||"").toLowerCase();
-    if(lc.length < 3) return;
+    if(lc.length < 3){ TRACK_CANDIDATES = []; updateTrackProgress(); return; }
+
     var candidates = [];
     for(var i=0;i<allItems.length;i++){
       var it = allItems[i];
       if(!basicMatches(it, lc)){ candidates.push(it); }
     }
-    // De-dupe already indexed/inflight inside indexTracksFor
+    TRACK_CANDIDATES = candidates;
     indexTracksFor(candidates, lc);
+    updateTrackProgress();
   }
 
   function applyFilterAndPaginate(){
@@ -553,8 +568,18 @@
     document.getElementById("page").textContent = "Page " + page;
     render();
 
-    // Kick off track indexing after first render, so UI stays snappy
     warmTrackIndexForQuery(lc);
+  }
+
+  /* ---------- Country helpers ---------- */
+  function joinYearCountry(year, country){
+    var ys = (year!=null) ? String(year) : "-";
+    var cs = (country && typeof country === "string") ? String(country) : null;
+    return cs ? (ys + " " + cs) : ys;
+  }
+  function countryForItem(it){
+    // Country appears after we fetch a release (track indexing or opening details)
+    return RELEASE_COUNTRY[String(it.id)] || null;
   }
 
   function render(){
@@ -578,7 +603,7 @@
         var meta=document.createElement("div"); meta.className="meta";
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
-        var yearStr = (it.year!=null) ? String(it.year) : "-";
+        var yearStr = joinYearCountry(it.year, countryForItem(it));   // NEW: add country
         var masterStr = (it.master_year!=null) ? String(it.master_year) : "-";
         var s=document.createElement("div"); s.className="s";
         s.textContent = it.artist + " • " + yearStr + " • " + masterStr;
@@ -600,7 +625,7 @@
         var metaL=document.createElement("div"); metaL.className="metaL";
         var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
 
-        var yearStr2 = (it2.year!=null) ? String(it2.year) : "-";
+        var yearStr2 = joinYearCountry(it2.year, countryForItem(it2)); // NEW: add country
         var masterStr2 = (it2.master_year!=null) ? String(it2.master_year) : "-";
         var p2 = it2.artist + " • " + yearStr2 + " • " + masterStr2 + (it2.catno ? " • " + it2.catno : "");
         var sL=document.createElement("div"); sL.className="sL"; sL.textContent=p2;
@@ -617,7 +642,7 @@
     document.getElementById("toggle").textContent = (view==="grid") ? "List View" : "Grid View";
   }
 
-  /* ---------- Helper: aggregate formats with quantity ---------- */
+  /* ---------- Format helpers ---------- */
   function formatFormats(arr){
     if(!arr || !arr.length) return "";
     var out=[], seen={};
@@ -643,11 +668,12 @@
     return out.join(", ");
   }
 
-  /* ---------- Details (full page) ---------- */
+  /* ---------- Details page ---------- */
   function openDetailsById(id){
     scrollMemo = window.scrollY || document.documentElement.scrollTop || 0;
     fetchRelease(id, function(err, data){
       if(err){ alert("Could not load details: " + err.message); return; }
+      if(data && data.country){ RELEASE_COUNTRY[String(id)] = data.country; }
       showDetails(data);
       document.getElementById('listPage').style.display = 'none';
       document.getElementById('detailPage').style.display = 'block';
@@ -706,7 +732,6 @@
     }
     var totalMinutes = Math.round(totalSec / 60);
 
-    // ℗ phonographic copyright
     var pCopyright = "";
     if (release.companies && release.companies.length){
       for (var c=0;c<release.companies.length;c++){
@@ -724,7 +749,6 @@
       pCopyright = "℗ " + release.copyright;
     }
 
-    // Build body
     var h = '';
     h += '<div class="md-head" id="md-head-block">';
     h += '  <div class="md-art" id="md-art"><img id="md-art-img" alt="" src="'+(art||'')+'"></div>';
@@ -761,19 +785,16 @@
       h += '</ul>';
     }
 
-    // Footer lines + deep link
     h += '<div class="detail-foot"><span class="muted">Master release</span>: ' + (masterYear!=null ? masterYear : "-") + '</div>';
     var songsLine = (trackCount ? (trackCount + ' song' + (trackCount>1?'s':'') + (totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
     h += '<div class="detail-foot">' + songsLine + '</div>';
     if (pCopyright){ h += '<div class="detail-foot">' + escapeHtml(pCopyright) + '</div>'; }
     if (release.uri){ h += '<a class="deep-link" target="_blank" rel="noopener" href="'+release.uri+'">Open in Discogs ↗</a>'; }
 
-    /* ---- Placeholder keeps v1.05 'More by Artist' mount ---- */
     h += '<div id="moreByMount" class="more-wrap" style="display:none;"></div>';
 
     body.innerHTML = h;
 
-    // Size art reliably (covers iOS 12 font/image load timing)
     function sizeArt(){
       var head  = document.getElementById('md-head-block');
       var artEl = document.getElementById('md-art');
@@ -800,11 +821,9 @@
     if(imgEl){ imgEl.onload = sizeArt; }
     window.addEventListener('resize', sizeArt);
 
-    // Keep existing 'More by Artist' behavior from v1.05 (render function is below)
     renderMoreBy(artists, release.id);
   }
 
-  /* ===== More by Artist (unchanged from v1.05) ===== */
   function renderMoreBy(artistName, excludeId){
     if(isVarious(artistName)){ return; }
     var targetNorm = normalizeArtist(artistName);
@@ -827,7 +846,7 @@
     h += '<div class="mini-grid">';
     for(var j=0;j<others.length;j++){
       var it = others[j];
-      var y  = (it.year!=null) ? String(it.year) : "-";
+      var y  = joinYearCountry(it.year, countryForItem(it)); // NEW: add country here too
       var my = (it.master_year!=null) ? String(it.master_year) : "-";
       h += '<div class="mini-card">';
       h += '  <div class="mini-inner" data-id="'+it.id+'">';
@@ -851,7 +870,6 @@
     }
   }
 
-  /* ---------- Controls ---------- */
   function openRandom(){
     var pool = filteredItems.length ? filteredItems : allItems;
     if(!pool.length){ alert("Collection not loaded yet."); return; }
@@ -875,7 +893,6 @@
   document.getElementById("backBtn").addEventListener("click", backToList);
   document.getElementById("headerRandom").addEventListener("click", function(e){ e.preventDefault(); openRandom(); });
 
-  /* ---------- Boot ---------- */
   fetchAllItems(function(){ applyFilterAndPaginate(); });
 })();
 </script>
