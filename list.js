@@ -1,3 +1,8 @@
+// DiscoApp v1.07b — list.js
+// - Grid meta now three-line: title, artist, years
+// - List layout unchanged
+// - Works with new CSS (.a line and truncation)
+
 (function(){
   var D = window.DiscoApp;
 
@@ -11,7 +16,8 @@
   function ensureFade(img){
     if(!img) return;
     img.className += " img-fade";
-    img.onload = function(){ img.className += " show"; };
+    if(img.complete && img.naturalWidth){ img.className += " show"; }
+    else { img.onload = function(){ img.className += " show"; }; }
   }
 
   function makeMetaLine(it){
@@ -48,13 +54,22 @@
         wrap.appendChild(img);
 
         var meta=document.createElement("div"); meta.className="meta";
+
+        // Album title
         var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
-        var s=document.createElement("div"); s.className="s";
-        s.innerHTML = D.escapeHtml(it.artist) + ' <span class="s-mid">•</span> ' + makeMetaLine(it);
+        // NEW: Artist line
+        var a=document.createElement("div"); a.className="a"; a.textContent=it.artist;
 
-        meta.appendChild(t); meta.appendChild(s);
-        inner.appendChild(wrap); inner.appendChild(meta);
+        // Year / Country / Master Year
+        var s=document.createElement("div"); s.className="s";
+        s.innerHTML = makeMetaLine(it);
+
+        meta.appendChild(t);
+        meta.appendChild(a);
+        meta.appendChild(s);
+        inner.appendChild(wrap);
+        inner.appendChild(meta);
         card.appendChild(inner);
         (function(id){ card.addEventListener("click", function(){ D.openDetailsById(id); }); })(it.id);
         grid.appendChild(card);
