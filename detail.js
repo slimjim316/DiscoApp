@@ -1,8 +1,7 @@
-// DiscoApp v1.07b — detail.js
-// - Fixed-size cover when side-by-side (320x320)
-// - Stacked layout uses 60% width, clamped to 200–420px, square via JS
-// - Fade-in guard for cached images
-// - Tooltips and simplified "More by" retained
+// DiscoApp v1.07c — detail.js
+// - Fixed layout structure (properly closes md-lines block)
+// - Tracks and footer now render below header correctly
+// - Retains cover sizing logic and fade-in guard
 
 (function(){
   var D = window.DiscoApp;
@@ -29,18 +28,13 @@
     var artEl=document.getElementById('md-art');
     var info=document.getElementById('md-info');
     if(!head||!artEl||!info) return;
-
-    // Detect stacked using computed flex-direction (set via CSS media queries)
     var stacked = (window.getComputedStyle(head).flexDirection === 'column');
-
     if(stacked){
-      // Use 60% of info/container width, clamped to 200–420px, force square
       var w = info.clientWidth || head.clientWidth || artEl.clientWidth || 320;
       w = clamp(Math.round(w * 0.6), 200, 420);
       artEl.style.width  = w + 'px';
       artEl.style.height = w + 'px';
     }else{
-      // Side-by-side: fixed 320x320 (CSS also enforces min/max as a safety net)
       artEl.style.width  = '320px';
       artEl.style.height = '320px';
     }
@@ -192,7 +186,9 @@
     h+='      <div class="line"><span class="muted">Released</span> '+(releasedYr!=null?releasedYr:"-")+'</div>';
     h+='      <div class="line"><span class="muted">Genre</span> '+(genres||"-")+'</div>';
     h+='      <div class="line"><span class="muted">Style</span> '+(styles||"-")+'</div>';
-    h+='  </div></div>';
+    h+='    </div>'; /* ✅ properly close md-lines */
+    h+='  </div>';  /* close md-info */
+    h+='</div>';    /* close md-head */
 
     if(release.tracklist && release.tracklist.length){
       h+='<ul class="tracks">';
@@ -223,14 +219,12 @@
 
     body.innerHTML=h;
 
-    // Fade-in for main art, including cached images
     var imgEl=document.getElementById('md-art-img');
     if(imgEl){
       if(imgEl.complete && imgEl.naturalWidth){ imgEl.className += " show"; }
       else{ imgEl.onload=function(){ imgEl.className += " show"; }; }
     }
 
-    // Initial sizing and listeners
     function deferSize(){ sizeArt(); }
     if(window.requestAnimationFrame){ requestAnimationFrame(deferSize); } else { setTimeout(sizeArt,0); }
     setTimeout(sizeArt,50); setTimeout(sizeArt,250);
