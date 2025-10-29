@@ -178,3 +178,37 @@ main{padding:10px 10px 90px}
   .artWrap, .mini-artWrap, .img-fade { transition: none !important; }
 }
 .artWrap, .mini-artWrap { will-change: transform; }
+
+/* --- Artists View (v1.08b) --- */
+.artists { display: flex; }
+.artists-side {
+  width: 280px;
+  max-width: 35%;
+  border-right: 1px solid var(--hair);
+  overflow-y: auto;
+}
+.artists-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  gap: 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--hair);
+}
+.artists-item.is-active { background: var(--hover); }
+.artists-item .ava {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ddd;
+  object-fit: cover;
+}
+.artists-item .count {
+  margin-left: auto;
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+.artists-body { flex: 1; padding: 10px; overflow-y: auto; }
+.artist-title { font-size: 1.4em; margin: 0 0 8px; }
+.grid.smallgrid .card { width: 150px; }
+
