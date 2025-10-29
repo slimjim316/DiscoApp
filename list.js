@@ -1,162 +1,191 @@
-// DiscoApp v1.07b — list.js
-// - Grid meta now three-line: title, artist, years
-// - List layout unchanged
-// - Works with new CSS (.a line and truncation)
+// list.js
+// v1.08b – Artists view + renamed toggles
 
-(function(){
-  var D = window.DiscoApp;
+(function () {
+  var D = window.D;
 
-  function setCount(start, end, total){
-    var el=document.getElementById("count");
-    if(!el) return;
-    if(total===0){ el.textContent="0 of 0"; }
-    else{ el.textContent=(start+1)+"-"+end+" of "+total; }
-  }
+  // Cached DOM references
+  var gridEl = document.getElementById('grid');
+  var artistsPane = document.getElementById('artistsPane');
+  var artistsSide = document.getElementById('artistsSide');
+  var artistsBody = document.getElementById('artistsBody');
+  var toggleBtn = document.getElementById('viewToggle');
+  var searchBox = document.getElementById('searchBox');
 
-  function ensureFade(img){
-    if(!img) return;
-    img.className += " img-fade";
-    if(img.complete && img.naturalWidth){ img.className += " show"; }
-    else { img.onload = function(){ img.className += " show"; }; }
-  }
+  // --------------------------------------------------
+  // Toggle button handler
+  // --------------------------------------------------
+  D.toggleView = function () {
+    if (D.view === 'albums') {
+      D.view = 'artists';
+    } else {
+      D.view = 'albums';
+    }
+    D.saveView();
+    D.renderLibrary();
+  };
 
-  function makeMetaLine(it){
-    var yearStr = D.joinYearCountry(it.year, D.countryForItem(it));
-    var masterStr = (it.master_year!=null) ? String(it.master_year) : "-";
+  // --------------------------------------------------
+  // Render Library view (Albums or Artists)
+  // --------------------------------------------------
+  D.renderLibrary = function () {
+    if (!D.ready) return;
+
+    // Update toggle button label
+    if (toggleBtn) {
+      toggleBtn.textContent = (D.view === 'albums') ? 'Artists' : 'Albums';
+    }
+
+    if (D.view === 'albums') {
+      gridEl.style.display = '';
+      artistsPane.style.display = 'none';
+      D.renderAlbums();
+    } else {
+      gridEl.style.display = 'none';
+      artistsPane.style.display = '';
+      D.renderArtists();
+    }
+  };
+
+  // --------------------------------------------------
+  // Render Albums (was grid view)
+  // --------------------------------------------------
+  D.renderAlbums = function () {
+    var html = [];
+    var items = D.allItems.slice(0); // all for now
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      html.push(D.renderCard(it));
+    }
+    gridEl.innerHTML = html.join('');
+  };
+
+  // --------------------------------------------------
+  // Render individual card (shared)
+  // --------------------------------------------------
+  D.renderCard = function (it) {
+    var title = D.escapeHtml(it.title);
+    var artist = D.escapeHtml(it.artist);
+    var year = it.master_year || it.year || '-';
+    var country = it.country || '';
+    var thumb = it.thumb ? ('<img src="' + D.escapeHtml(it.thumb) + '" alt="">') : '<div class="noimg"></div>';
     return (
-      '<span class="s-year" title="Release year and country">'+D.escapeHtml(yearStr)+'</span>' +
-      '<span class="s-mid">•</span>' +
-      '<span class="s-master" title="Master release year">'+D.escapeHtml(masterStr)+'</span>'
+      '<div class="card" data-id="' + it.id + '">' +
+      '<div class="thumb">' + thumb + '</div>' +
+      '<div class="meta">' +
+      '<div class="title">' + title + '</div>' +
+      '<div class="artist">' + artist + '</div>' +
+      '<div class="sub">' + year + (country ? ' • ' + country : '') + '</div>' +
+      '</div></div>'
     );
-  }
+  };
 
-  function render(){
-    var grid=document.getElementById("grid");
-    var list=document.getElementById("list");
-    if(!grid || !list) return;
-    grid.innerHTML=""; list.innerHTML="";
-
-    var start=(D.page-1)*D.per;
-    var end  = Math.min(start + D.per, D.filteredItems.length);
-    var pageSlice=D.filteredItems.slice(start, end);
-
-    if(D.view==="grid"){
-      grid.style.display="flex"; list.style.display="none";
-      for(var i=0;i<pageSlice.length;i++){
-        var it=pageSlice[i];
-        var card=document.createElement("div"); card.className="card";
-        var inner=document.createElement("div"); inner.className="cardInner";
-        var wrap=document.createElement("div"); wrap.className="artWrap";
-        var img=document.createElement("img"); img.className="art"; img.alt=""; img.src=it.thumb||"";
-        try{ img.decoding='async'; }catch(e){}
-        try{ img.loading='lazy'; }catch(e){}
-        ensureFade(img);
-        wrap.appendChild(img);
-
-        var meta=document.createElement("div"); meta.className="meta";
-
-        // Album title
-        var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
-
-        // NEW: Artist line
-        var a=document.createElement("div"); a.className="a"; a.textContent=it.artist;
-
-        // Year / Country / Master Year
-        var s=document.createElement("div"); s.className="s";
-        s.innerHTML = makeMetaLine(it);
-
-        meta.appendChild(t);
-        meta.appendChild(a);
-        meta.appendChild(s);
-        inner.appendChild(wrap);
-        inner.appendChild(meta);
-        card.appendChild(inner);
-        (function(id){ card.addEventListener("click", function(){ D.openDetailsById(id); }); })(it.id);
-        grid.appendChild(card);
-      }
-    }else{
-      grid.style.display="none"; list.style.display="block";
-      for(var j=0;j<pageSlice.length;j++){
-        var it2=pageSlice[j];
-        var li=document.createElement("li"); li.className="row";
-        var tw=document.createElement("div"); tw.className="thumbWrap";
-        var th=document.createElement("img"); th.className="thumb"; th.alt=""; th.src=it2.thumb||"";
-        try{ th.decoding='async'; }catch(e){}
-        try{ th.loading='lazy'; }catch(e){}
-        ensureFade(th);
-        tw.appendChild(th);
-
-        var metaL=document.createElement("div"); metaL.className="metaL";
-        var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
-
-        var sL=document.createElement("div"); sL.className="sL";
-        var p2 = D.escapeHtml(it2.artist) + ' <span class="s-mid">•</span> ' + makeMetaLine(it2) + (it2.catno ? ' <span class="s-mid">•</span> ' + D.escapeHtml(it2.catno) : '');
-        sL.innerHTML=p2;
-
-        metaL.appendChild(tL); metaL.appendChild(sL);
-        li.appendChild(tw); li.appendChild(metaL);
-        (function(id){ li.addEventListener("click", function(){ D.openDetailsById(id); }); })(it2.id);
-        list.appendChild(li);
-      }
-    }
-
-    var prev=document.getElementById("prev");
-    var next=document.getElementById("next");
-    if(prev) prev.disabled = D.page<=1;
-    if(next) next.disabled = D.page>=D.pages;
-
-    var toggle=document.getElementById("toggle");
-    if(toggle) toggle.textContent = (D.view==="grid") ? "List View" : "Grid View";
-
-    setCount(start, end, D.filteredItems.length);
-  }
-
-  function applyFilterAndPaginate(){
-    var lc=String(D.q||"").toLowerCase();
-    D.filteredItems=[];
-    for(var i=0;i<D.allItems.length;i++){ if(D.matches(D.allItems[i], D.q)) D.filteredItems.push(D.allItems[i]); }
-
-    D.pages=Math.max(1, Math.ceil(D.filteredItems.length / (D.per||1)));
-    if(D.page>D.pages) D.page=D.pages;
-
-    render();
-    D.warmTrackIndexForQuery(lc);
-  }
-  D.applyFilterAndPaginate = applyFilterAndPaginate;
-  D.render = render;
-
-  function bindListControls(){
-    var q=document.getElementById("q");
-    if(q){ q.addEventListener("input", function(e){ D.q=e.target.value; D.page=1; applyFilterAndPaginate(); }); }
-
-    var prev=document.getElementById("prev");
-    if(prev){ prev.addEventListener("click", function(){ if(D.page>1){ D.page--; applyFilterAndPaginate(); } }); }
-
-    var next=document.getElementById("next");
-    if(next){ next.addEventListener("click", function(){ if(D.page<D.pages){ D.page++; applyFilterAndPaginate(); } }); }
-
-    var random=document.getElementById("random");
-    if(random){ random.addEventListener("click", D.openRandom); }
-
-    var toggle=document.getElementById("toggle");
-    if(toggle){
-      toggle.addEventListener("click", function(){
-        D.view=(D.view==="grid")?"list":"grid";
-        try{ localStorage.setItem(D.VIEW_KEY, D.view); }catch(e){}
-        render();
+  // --------------------------------------------------
+  // Render Artists view
+  // --------------------------------------------------
+  D.renderArtists = function () {
+    var q = (searchBox && searchBox.value || '').toLowerCase();
+    var list = D.ARTISTS.slice(0);
+    if (q) {
+      list = list.filter(function (a) {
+        return a.name.toLowerCase().indexOf(q) >= 0;
       });
     }
 
-    var pageSize=document.getElementById("pageSize");
-    if(pageSize){
-      pageSize.value = String(D.per);
-      pageSize.addEventListener("change", function(e){
-        var v=parseInt(e.target.value,10);
-        D.per = (!isNaN(v) && [25,50,100,250].indexOf(v)!==-1) ? v : 100;
-        try{ localStorage.setItem(D.PER_KEY, String(D.per)); }catch(e){}
-        D.page=1; applyFilterAndPaginate();
-      });
+    // Left panel
+    var html = [];
+    for (var i = 0; i < list.length; i++) {
+      var a = list[i];
+      var active = (D.artistSelected === a.norm) ? ' is-active' : '';
+      var thumb = a.thumb ? '<img class="ava" src="' + D.escapeHtml(a.thumb) + '" alt="">' : '<div class="ava noimg"></div>';
+      html.push(
+        '<div class="artists-item' + active + '" data-norm="' + D.escapeHtml(a.norm) + '">' +
+        thumb + '<span class="name">' + D.escapeHtml(a.name) + '</span>' +
+        '<span class="count">' + a.count + '</span>' +
+        '</div>'
+      );
     }
-  }
-  D.bindListControls = bindListControls;
+    artistsSide.innerHTML = html.join('');
+
+    // Right panel
+    D.renderArtistAlbums(D.artistSelected);
+  };
+
+  // --------------------------------------------------
+  // Render selected artist’s albums
+  // --------------------------------------------------
+  D.renderArtistAlbums = function (norm) {
+    if (!norm) {
+      artistsBody.innerHTML = '<p class="hint">Choose an artist to view albums</p>';
+      return;
+    }
+
+    var albums = D.getArtistAlbums(norm);
+    var html = [];
+    html.push('<h2 class="artist-title">' + D.escapeHtml(D.ARTISTS[D.ARTIST_MAP[norm]].name) + '</h2>');
+    html.push('<div class="grid smallgrid">');
+    for (var i = 0; i < albums.length; i++) {
+      var it = albums[i];
+      // Same card but without artist line
+      var title = D.escapeHtml(it.title);
+      var year = it.master_year || it.year || '-';
+      var country = it.country || '';
+      var thumb = it.thumb ? ('<img src="' + D.escapeHtml(it.thumb) + '" alt="">') : '<div class="noimg"></div>';
+      html.push(
+        '<div class="card" data-id="' + it.id + '">' +
+        '<div class="thumb">' + thumb + '</div>' +
+        '<div class="meta">' +
+        '<div class="title">' + title + '</div>' +
+        '<div class="sub">' + year + (country ? ' • ' + country : '') + '</div>' +
+        '</div></div>'
+      );
+    }
+    html.push('</div>');
+    artistsBody.innerHTML = html.join('');
+  };
+
+  // --------------------------------------------------
+  // Event listeners
+  // --------------------------------------------------
+  artistsSide.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && !el.classList.contains('artists-item')) el = el.parentNode;
+    if (!el) return;
+    var norm = el.getAttribute('data-norm');
+    D.artistSelected = norm;
+    D.renderArtists();
+  });
+
+  gridEl.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && !el.classList.contains('card')) el = el.parentNode;
+    if (!el) return;
+    var id = el.getAttribute('data-id');
+    D.openDetail(id);
+  });
+
+  artistsBody.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && !el.classList.contains('card')) el = el.parentNode;
+    if (!el) return;
+    var id = el.getAttribute('data-id');
+    D.openDetail(id);
+  });
+
+  // --------------------------------------------------
+  // Simple HTML escape helper
+  // --------------------------------------------------
+  D.escapeHtml = function (s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[m];
+    });
+  };
+
 })();
