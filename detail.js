@@ -1,3 +1,9 @@
+// DiscoApp v1.07b — detail.js
+// - Fixed-size cover when side-by-side (320x320)
+// - Stacked layout uses 60% width, clamped to 200–420px, square via JS
+// - Fade-in guard for cached images
+// - Tooltips and simplified "More by" retained
+
 (function(){
   var D = window.DiscoApp;
 
@@ -16,21 +22,27 @@
     return out.join(", ");
   }
 
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
   function sizeArt(){
     var head=document.getElementById('md-head-block');
     var artEl=document.getElementById('md-art');
     var info=document.getElementById('md-info');
     if(!head||!artEl||!info) return;
 
-    var stacked=(window.getComputedStyle(head).flexDirection==='column');
+    // Detect stacked using computed flex-direction (set via CSS media queries)
+    var stacked = (window.getComputedStyle(head).flexDirection === 'column');
+
     if(stacked){
-      var w=artEl.clientWidth; if(w>0){ artEl.style.height=w+'px'; }
+      // Use 60% of info/container width, clamped to 200–420px, force square
+      var w = info.clientWidth || head.clientWidth || artEl.clientWidth || 320;
+      w = clamp(Math.round(w * 0.6), 200, 420);
+      artEl.style.width  = w + 'px';
+      artEl.style.height = w + 'px';
     }else{
-      var baseTop=info.getBoundingClientRect().top;
-      var titleTop=Math.max(0, document.getElementById('md-album-title').getBoundingClientRect().top - baseTop);
-      var infoH=Math.max(info.scrollHeight, info.getBoundingClientRect().height);
-      var hpx=Math.max(160, Math.round(infoH - titleTop));
-      artEl.style.height=hpx+'px'; artEl.style.width=hpx+'px';
+      // Side-by-side: fixed 320x320 (CSS also enforces min/max as a safety net)
+      artEl.style.width  = '320px';
+      artEl.style.height = '320px';
     }
   }
 
@@ -73,11 +85,19 @@
     mount.innerHTML=h;
 
     var imgs=mount.getElementsByClassName('img-fade');
-    for(var k=0;k<imgs.length;k++){ (function(im){ im.onload=function(){ im.className += " show"; }; })(imgs[k]); }
+    for(var k=0;k<imgs.length;k++){
+      (function(im){
+        if(im.complete && im.naturalWidth){ im.className += " show"; }
+        else{ im.onload=function(){ im.className += " show"; }; }
+      })(imgs[k]);
+    }
 
     var cards = mount.getElementsByClassName('mini-inner');
     for(var c=0;c<cards.length;c++){
-      (function(el){ var rid=el.getAttribute('data-id'); el.addEventListener('click', function(){ D.openDetailsById(rid); }); })(cards[c]);
+      (function(el){
+        var rid=el.getAttribute('data-id');
+        el.addEventListener('click', function(){ D.openDetailsById(rid); });
+      })(cards[c]);
     }
   }
 
@@ -201,12 +221,16 @@
 
     h+='<div id="moreByMount" class="more-wrap" style="display:none;"></div>';
 
-    var body=document.getElementById("detailBody");
     body.innerHTML=h;
 
+    // Fade-in for main art, including cached images
     var imgEl=document.getElementById('md-art-img');
-    if(imgEl){ imgEl.onload=function(){ imgEl.className += " show"; }; }
+    if(imgEl){
+      if(imgEl.complete && imgEl.naturalWidth){ imgEl.className += " show"; }
+      else{ imgEl.onload=function(){ imgEl.className += " show"; }; }
+    }
 
+    // Initial sizing and listeners
     function deferSize(){ sizeArt(); }
     if(window.requestAnimationFrame){ requestAnimationFrame(deferSize); } else { setTimeout(sizeArt,0); }
     setTimeout(sizeArt,50); setTimeout(sizeArt,250);
