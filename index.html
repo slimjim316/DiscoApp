@@ -1,59 +1,75 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>DiscoApp v1.08b</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>DiscoApp · Library</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <div class="bar">
-      <button id="backBtn" class="btn hidden">← Back</button>
-      <h1 id="appTitle">DiscoApp</h1>
-      <div class="controls">
-        <input id="searchBox" type="search" placeholder="Search…" aria-label="Search collection">
-        <button id="randomBtn" class="btn">Random</button>
-        <button id="viewToggle" class="btn">Artists</button>
-        <select id="pageSizeSelect" title="Items per page">
-          <option value="25">25</option>
-          <option value="50">50</option>
-          <option value="100" selected>100</option>
-          <option value="250">250</option>
+  <div class="version-tag">v1.07c</div>
+
+  <!-- LIST PAGE -->
+  <div id="listPage">
+    <header>
+      <div class="title">Library</div>
+      <div class="search">
+        <span class="mag" aria-hidden="true">🔎</span>
+        <input id="q" placeholder="Search" autocomplete="off" aria-label="Search releases">
+      </div>
+      <div class="info">
+        <span id="count">0 of 0</span>
+        <div class="info-right">
+          <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
+          <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
+
+          <span id="trackProgressTxt" style="display:none;">Track titles: 0 / 0 (0 active)</span>
+          <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;"><div id="trackProgressBar" class="progress-bar"></div></div>
+
+          <span id="apiStatus" class="api-status">API busy, slowing down…</span>
+          <span id="page">Page 1</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div id="grid" class="grid" aria-live="polite" style="display:block;"></div>
+      <ul id="list" class="list" aria-live="polite"></ul>
+    </main>
+
+    <div class="toolbar" role="toolbar" aria-label="Paging and view options">
+      <div class="group">
+        <button id="prev" class="btn" type="button">◀︎ Prev</button>
+        <button id="next" class="btn" type="button">Next ▶︎</button>
+        <button id="random" class="btn accent" type="button">🎲 Random</button>
+      </div>
+      <div class="group">
+        <select id="pageSize" class="select" title="Items per page" aria-label="Items per page">
+          <option value="25">Show 25</option>
+          <option value="50">Show 50</option>
+          <option value="100">Show 100</option>
+          <option value="250">Show 250</option>
         </select>
+        <button id="toggle" class="btn" type="button">List View</button>
       </div>
     </div>
-  </header>
+  </div>
 
-  <main id="library">
-    <!-- Albums (grid view) -->
-    <div id="grid" class="grid"></div>
-
-    <!-- Artists (new v1.08b view) -->
-    <div id="artistsPane" class="artists" style="display:none;">
-      <aside id="artistsSide" class="artists-side" aria-label="Artists"></aside>
-      <section id="artistsBody" class="artists-body" aria-live="polite"></section>
+  <!-- DETAILS PAGE -->
+  <div id="detailPage" role="document" aria-live="polite">
+    <div class="detail-header">
+      <div class="detail-topbar">
+        <div class="detail-left">
+          <a id="backBtn" class="btn" href="#">◀︎ Back</a>
+          <button id="headerRandom" class="btn accent" type="button">🎲 Random</button>
+        </div>
+        <span></span><span></span>
+      </div>
     </div>
-  </main>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
 
-  <!-- Detail view (hidden until active) -->
-  <section id="detailView" class="detail hidden">
-    <div id="detailHeader">
-      <button id="detailBackBtn" class="btn">← Back</button>
-      <h2 id="detailTitle"></h2>
-    </div>
-    <div id="detailBody"></div>
-  </section>
-
-  <footer>
-    <div id="statusBar">
-      <span id="itemCount"></span>
-      <span id="version">v1.08b</span>
-    </div>
-  </footer>
-
-  <!-- JS modules -->
+  <!-- ES5, module-free load order (iOS 12 Safari compatible) -->
   <script src="core.js"></script>
   <script src="list.js"></script>
   <script src="detail.js"></script>
