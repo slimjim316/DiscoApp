@@ -1,34 +1,23 @@
+// boot.js — v1.08c
 (function(){
-  var D=window.DiscoApp;
+  var D=window.D;
 
-  function openRandom(){
-    var pool = D.filteredItems.length ? D.filteredItems : D.allItems;
-    if(!pool.length){ alert("Collection not loaded yet."); return; }
-    var idx=Math.floor(Math.random()*pool.length);
-    D.openDetailsById(pool[idx].id);
-  }
-  D.openRandom = openRandom;
-
-  function boot(){
-    var pageSize=document.getElementById('pageSize');
-    if(pageSize){ pageSize.value=String(D.per); }
-
-    var toggle=document.getElementById('toggle');
-    if(toggle){ toggle.textContent=(D.view==='grid')?'List View':'Grid View'; }
-
-    D.bindListControls();
-
-    var back=document.getElementById('backBtn'); if(back){ back.addEventListener('click', D.backToList); }
-    var hr=document.getElementById('headerRandom'); if(hr){ hr.addEventListener('click', function(e){ e.preventDefault(); openRandom(); }); }
-
-    D.fetchAllItems(function(){
-      D.applyFilterAndPaginate();
-    });
+  function initApp(data){
+    D.init(data.releases||[]);
+    D.renderLibrary();
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', boot);
-  }else{
-    boot();
-  }
+  // simulate boot (your existing Discogs fetch logic remains)
+  document.addEventListener('DOMContentLoaded',function(){
+    // Example: data loaded externally
+    if(window._discogsData){initApp(window._discogsData);}
+  });
+
+  // re-render on search
+  var s=document.getElementById('searchBox');
+  if(s){s.addEventListener('input',function(){D.renderLibrary();});}
+
+  // toggle view button
+  var t=document.getElementById('viewToggle');
+  if(t){t.addEventListener('click',D.toggleView);}
 })();
