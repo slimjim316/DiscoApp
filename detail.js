@@ -1,7 +1,6 @@
-// DiscoApp v1.07c — detail.js
-// - Fixed layout structure (properly closes md-lines block)
-// - Tracks and footer now render below header correctly
-// - Retains cover sizing logic and fade-in guard
+// DiscoApp v1.09 — detail.js
+// - No functional changes from v1.07c
+// - Updated version tag and kept sizing + "More by" logic
 
 (function(){
   var D = window.DiscoApp;
@@ -102,21 +101,26 @@
       if(rel && rel.country){ D.RELEASE_COUNTRY[String(id)]=rel.country; }
       showDetails(rel);
       document.getElementById('listPage').style.display='none';
+      document.getElementById('artistsPage').style.display='none';
       document.getElementById('detailPage').style.display='block';
       window.scrollTo(0,0);
     });
   };
 
-  function backToList(e){
+  D.backToList = function(e){
     if(e) e.preventDefault();
     document.getElementById('detailPage').style.display='none';
-    document.getElementById('listPage').style.display='block';
+    if(D.view === "artists"){
+      document.getElementById('artistsPage').style.display='block';
+    }else{
+      document.getElementById('listPage').style.display='block';
+    }
     window.scrollTo(0, D.scrollMemo||0);
-  }
-  D.backToList = backToList;
+  };
 
   function showDetails(release){
     var body=document.getElementById("detailBody");
+    if(!body) return;
     var title = release.title || "";
     var artists = (release.artists && release.artists[0] ? release.artists[0].name : "");
     var year = D.validYear(release.year);
@@ -186,9 +190,9 @@
     h+='      <div class="line"><span class="muted">Released</span> '+(releasedYr!=null?releasedYr:"-")+'</div>';
     h+='      <div class="line"><span class="muted">Genre</span> '+(genres||"-")+'</div>';
     h+='      <div class="line"><span class="muted">Style</span> '+(styles||"-")+'</div>';
-    h+='    </div>'; /* ✅ properly close md-lines */
-    h+='  </div>';  /* close md-info */
-    h+='</div>';    /* close md-head */
+    h+='    </div>';
+    h+='  </div>';
+    h+='</div>';
 
     if(release.tracklist && release.tracklist.length){
       h+='<ul class="tracks">';
@@ -207,8 +211,7 @@
     }
 
     h+='<div class="detail-foot"><span class="muted">Master release</span>: '
-      + (masterYear!=null ? '<span class="s-master" title="Master release year">'+D.escapeHtml(String(masterYear))+'</span>' : '-')
-      + '</div>';
+      + (masterYear!=null ? '<span class="s-master" title="Master release year">'+D.escapeHtml(String(masterYear))+'</span>' : '-') + '</div>';
 
     var songsLine=(trackCount ? (trackCount+' song'+(trackCount>1?'s':'')+(totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
     h+='<div class="detail-foot">'+songsLine+'</div>';

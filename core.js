@@ -5,15 +5,21 @@
   D.API  = "https://disco.slimjim316.workers.dev";
   D.USER = "slimjim316";
 
-  D.page=1; D.per=100; D.folder=0; D.total=0; D.pages=1; D.q=""; D.view="grid";
+  /* ===== v1.09 state ===== */
+  D.page=1; D.per=100; D.folder=0; D.total=0; D.pages=1; D.q="";
+  D.view="albums"; /* 'albums' | 'artists' */
+  D.selectedArtist = ""; /* normalized key */
   D.allItems = []; D.filteredItems = [];
   D.scrollMemo = 0;
 
-  D.PER_KEY     = 'discoapp_per_page';
-  D.COUNTRY_KEY = 'discoapp_country';
-  D.TRACKS_KEY  = 'discoapp_tracks';
-  D.VIEW_KEY    = 'discoapp_view';
+  /* storage keys */
+  D.PER_KEY      = 'discoapp_per_page';
+  D.COUNTRY_KEY  = 'discoapp_country';
+  D.TRACKS_KEY   = 'discoapp_tracks';
+  D.VIEW_KEY     = 'discoapp_view';       /* albums | artists */
+  D.ARTIST_KEY   = 'discoapp_artist';     /* normalized artist key */
 
+  /* restore persisted settings */
   try {
     var savedPer = parseInt(localStorage.getItem(D.PER_KEY)||'100',10);
     if([25,50,100,250].indexOf(savedPer)===-1) savedPer = 100;
@@ -21,10 +27,16 @@
   } catch(e){}
 
   try {
-    var savedView = String(localStorage.getItem(D.VIEW_KEY)||"grid");
-    D.view = (savedView==="list")?"list":"grid";
+    var savedView = String(localStorage.getItem(D.VIEW_KEY)||"albums");
+    D.view = (savedView==="artists") ? "artists" : "albums";
   } catch(e){}
 
+  try {
+    var savedArtist = String(localStorage.getItem(D.ARTIST_KEY)||"");
+    D.selectedArtist = savedArtist;
+  } catch(e){}
+
+  /* ===== network / backoff ===== */
   var RATE_COOLDOWN_MS = 0;
   function showApiStatus(on){
     var el = document.getElementById('apiStatus');
@@ -83,6 +95,7 @@
     })();
   };
 
+  /* ===== utils ===== */
   D.isArray=function(x){return Object.prototype.toString.call(x)==='[object Array]';};
   D.escapeHtml=function(s){return String(s).replace(/[&<>\"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});};
   D.validYear=function(y){ var n=parseInt(y,10); return (n>=1000 && n<=3000) ? n : null; };
@@ -90,6 +103,7 @@
   D.normalizeArtist=function(name){ if(!name) return ""; var s=String(name).replace(/^\s*the\s+/i,""); return s.toLowerCase(); };
   D.isVarious=function(name){ return /^\s*various\s*$/i.test(name||""); };
 
+  /* ===== queue ===== */
   var CONCURRENCY=6, inflight=0; D.queue=[];
   function runQueue(){
     while(inflight<CONCURRENCY && D.queue.length){
@@ -100,6 +114,7 @@
   }
   D.runQueue = runQueue;
 
+  /* ===== caches (master year, countries, tracks) ===== */
   D.MASTER_YEAR = {};
   try { D.MASTER_YEAR = JSON.parse(localStorage.getItem('discoapp_master_year') || '{}') || {}; } catch(e){ D.MASTER_YEAR = {}; }
   D.MASTER_INFLIGHT = {};
@@ -133,6 +148,7 @@
     },600);
   }
 
+  /* ===== data helpers ===== */
   function parseYearFromMaster(data){
     if(!data) return null;
     if(typeof data.year==="number") return D.validYear(data.year);
@@ -251,6 +267,7 @@
     D.runQueue();
   }
 
+  /* sorting for releases (unchanged) */
   D.cmpItems=function(a,b){
     if(a.normArtist<b.normArtist) return -1;
     if(a.normArtist>b.normArtist) return 1;
@@ -268,6 +285,7 @@
     if(aT<bT) return -1; if(aT>bT) return 1; return 0;
   };
 
+  /* progress UIs (unchanged) */
   D.updateProgress=function(){
     var progressTxt=document.getElementById("progressTxt");
     var progressBar=document.getElementById("progressBar");
@@ -315,6 +333,7 @@
     else{ wrap.style.display="block"; txt.style.display="inline"; txt.textContent="Track titles: "+resolved+" / "+total+" ("+active+" active)"; }
   };
 
+  /* mapping from API */
   function mapReleases(arr){
     return arr.map(function(r){
       var info = r && r.basic_information ? r.basic_information : r || {};
@@ -409,5 +428,40 @@
     var ys=(year!=null)?String(year):"-";
     var cs=(country && typeof country==="string")?String(country):null;
     return cs ? (ys + " " + cs) : ys;
+  };
+
+  /* ===== v1.09: artists helpers ===== */
+  D.buildArtistIndex = function(){
+    var map={}, order=[];
+    for(var i=0;i<D.allItems.length;i++){
+      var it=D.allItems[i]; if(!it || !it.artist) continue;
+      var norm = D.isVarious(it.artist) ? "various" : D.normalizeArtist(it.artist);
+      if(!map[norm]){
+        map[norm] = { norm:norm, name: it.artist, count:0, thumb: it.thumb || "", items: [] };
+        order.push(map[norm]);
+      }
+      map[norm].count++;
+      map[norm].items.push(it);
+      if(!map[norm].thumb && it.thumb){ map[norm].thumb = it.thumb; }
+      if(map[norm].name.length < it.artist.length && !D.isVarious(it.artist)){
+        /* keep the more complete display name if we encounter one later */
+        map[norm].name = it.artist;
+      }
+    }
+    order.sort(function(a,b){
+      var an=a.norm, bn=b.norm;
+      if(an<bn) return -1; if(an>bn) return 1; return 0;
+    });
+    return order;
+  };
+
+  D.setView = function(view){
+    D.view = (view==="artists") ? "artists" : "albums";
+    try{ localStorage.setItem(D.VIEW_KEY, D.view); }catch(e){}
+  };
+
+  D.setSelectedArtist = function(norm){
+    D.selectedArtist = String(norm||"");
+    try{ localStorage.setItem(D.ARTIST_KEY, D.selectedArtist); }catch(e){}
   };
 })();

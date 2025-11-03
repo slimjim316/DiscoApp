@@ -1,7 +1,7 @@
-// DiscoApp v1.07b — list.js
-// - Grid meta now three-line: title, artist, years
-// - List layout unchanged
-// - Works with new CSS (.a line and truncation)
+// DiscoApp v1.09 — list.js (Albums view)
+// - Albums view uses grid cards (unchanged visual layout)
+// - Toggle now switches between Albums and Artists views
+// - D.view is global ('albums' | 'artists'), managed via D.setView / D.showAlbumsView / D.showArtistsView
 
 (function(){
   var D = window.DiscoApp;
@@ -30,7 +30,7 @@
     );
   }
 
-  function render(){
+  function renderAlbums(){
     var grid=document.getElementById("grid");
     var list=document.getElementById("list");
     if(!grid || !list) return;
@@ -40,73 +40,56 @@
     var end  = Math.min(start + D.per, D.filteredItems.length);
     var pageSlice=D.filteredItems.slice(start, end);
 
-    if(D.view==="grid"){
-      grid.style.display="flex"; list.style.display="none";
-      for(var i=0;i<pageSlice.length;i++){
-        var it=pageSlice[i];
-        var card=document.createElement("div"); card.className="card";
-        var inner=document.createElement("div"); inner.className="cardInner";
-        var wrap=document.createElement("div"); wrap.className="artWrap";
-        var img=document.createElement("img"); img.className="art"; img.alt=""; img.src=it.thumb||"";
-        try{ img.decoding='async'; }catch(e){}
-        try{ img.loading='lazy'; }catch(e){}
-        ensureFade(img);
-        wrap.appendChild(img);
+    grid.style.display="flex";
+    list.style.display="none";
 
-        var meta=document.createElement("div"); meta.className="meta";
+    for(var i=0;i<pageSlice.length;i++){
+      var it=pageSlice[i];
+      var card=document.createElement("div"); card.className="card";
+      var inner=document.createElement("div"); inner.className="cardInner";
+      var wrap=document.createElement("div"); wrap.className="artWrap";
+      var img=document.createElement("img"); img.className="art"; img.alt=""; img.src=it.thumb||"";
+      try{ img.decoding='async'; }catch(e){}
+      try{ img.loading='lazy'; }catch(e){}
+      ensureFade(img);
+      wrap.appendChild(img);
 
-        // Album title
-        var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
+      var meta=document.createElement("div"); meta.className="meta";
 
-        // NEW: Artist line
-        var a=document.createElement("div"); a.className="a"; a.textContent=it.artist;
+      // Album title
+      var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
 
-        // Year / Country / Master Year
-        var s=document.createElement("div"); s.className="s";
-        s.innerHTML = makeMetaLine(it);
+      // Artist line
+      var a=document.createElement("div"); a.className="a"; a.textContent=it.artist;
 
-        meta.appendChild(t);
-        meta.appendChild(a);
-        meta.appendChild(s);
-        inner.appendChild(wrap);
-        inner.appendChild(meta);
-        card.appendChild(inner);
-        (function(id){ card.addEventListener("click", function(){ D.openDetailsById(id); }); })(it.id);
-        grid.appendChild(card);
-      }
-    }else{
-      grid.style.display="none"; list.style.display="block";
-      for(var j=0;j<pageSlice.length;j++){
-        var it2=pageSlice[j];
-        var li=document.createElement("li"); li.className="row";
-        var tw=document.createElement("div"); tw.className="thumbWrap";
-        var th=document.createElement("img"); th.className="thumb"; th.alt=""; th.src=it2.thumb||"";
-        try{ th.decoding='async'; }catch(e){}
-        try{ th.loading='lazy'; }catch(e){}
-        ensureFade(th);
-        tw.appendChild(th);
+      // Year / Country / Master Year
+      var s=document.createElement("div"); s.className="s";
+      s.innerHTML = makeMetaLine(it);
 
-        var metaL=document.createElement("div"); metaL.className="metaL";
-        var tL=document.createElement("div"); tL.className="tL"; tL.textContent=it2.title;
-
-        var sL=document.createElement("div"); sL.className="sL";
-        var p2 = D.escapeHtml(it2.artist) + ' <span class="s-mid">•</span> ' + makeMetaLine(it2) + (it2.catno ? ' <span class="s-mid">•</span> ' + D.escapeHtml(it2.catno) : '');
-        sL.innerHTML=p2;
-
-        metaL.appendChild(tL); metaL.appendChild(sL);
-        li.appendChild(tw); li.appendChild(metaL);
-        (function(id){ li.addEventListener("click", function(){ D.openDetailsById(id); }); })(it2.id);
-        list.appendChild(li);
-      }
+      meta.appendChild(t);
+      meta.appendChild(a);
+      meta.appendChild(s);
+      inner.appendChild(wrap);
+      inner.appendChild(meta);
+      card.appendChild(inner);
+      (function(id){ card.addEventListener("click", function(){ D.openDetailsById(id); }); })(it.id);
+      grid.appendChild(card);
     }
 
     var prev=document.getElementById("prev");
-    var next=document.getElementById("next");
+    var next=document.getElementBy("next");
     if(prev) prev.disabled = D.page<=1;
     if(next) next.disabled = D.page>=D.pages;
 
     var toggle=document.getElementById("toggle");
-    if(toggle) toggle.textContent = (D.view==="grid") ? "List View" : "Grid View";
+    if(toggle){
+      toggle.textContent = (D.view==="albums") ? "Artists" : "Albums";
+    }
+
+    var pageLabel=document.getElementById("page");
+    if(pageLabel){
+      pageLabel.textContent = "Page " + D.page;
+    }
 
     setCount(start, end, D.filteredItems.length);
   }
@@ -114,26 +97,48 @@
   function applyFilterAndPaginate(){
     var lc=String(D.q||"").toLowerCase();
     D.filteredItems=[];
-    for(var i=0;i<D.allItems.length;i++){ if(D.matches(D.allItems[i], D.q)) D.filteredItems.push(D.allItems[i]); }
+    for(var i=0;i<D.allItems.length;i++){
+      if(D.matches(D.allItems[i], D.q)) D.filteredItems.push(D.allItems[i]);
+    }
 
     D.pages=Math.max(1, Math.ceil(D.filteredItems.length / (D.per||1)));
     if(D.page>D.pages) D.page=D.pages;
 
-    render();
+    renderAlbums();
     D.warmTrackIndexForQuery(lc);
   }
   D.applyFilterAndPaginate = applyFilterAndPaginate;
-  D.render = render;
+  D.render = renderAlbums;
 
   function bindListControls(){
     var q=document.getElementById("q");
-    if(q){ q.addEventListener("input", function(e){ D.q=e.target.value; D.page=1; applyFilterAndPaginate(); }); }
+    if(q){
+      q.addEventListener("input", function(e){
+        D.q=e.target.value;
+        D.page=1;
+        applyFilterAndPaginate();
+      });
+    }
 
     var prev=document.getElementById("prev");
-    if(prev){ prev.addEventListener("click", function(){ if(D.page>1){ D.page--; applyFilterAndPaginate(); } }); }
+    if(prev){
+      prev.addEventListener("click", function(){
+        if(D.page>1){
+          D.page--;
+          applyFilterAndPaginate();
+        }
+      });
+    }
 
     var next=document.getElementById("next");
-    if(next){ next.addEventListener("click", function(){ if(D.page<D.pages){ D.page++; applyFilterAndPaginate(); } }); }
+    if(next){
+      next.addEventListener("click", function(){
+        if(D.page<D.pages){
+          D.page++;
+          applyFilterAndPaginate();
+        }
+      });
+    }
 
     var random=document.getElementById("random");
     if(random){ random.addEventListener("click", D.openRandom); }
@@ -141,9 +146,11 @@
     var toggle=document.getElementById("toggle");
     if(toggle){
       toggle.addEventListener("click", function(){
-        D.view=(D.view==="grid")?"list":"grid";
-        try{ localStorage.setItem(D.VIEW_KEY, D.view); }catch(e){}
-        render();
+        if(D.view==="albums" && typeof D.showArtistsView==="function"){
+          D.showArtistsView();
+        }else if(D.view==="artists" && typeof D.showAlbumsView==="function"){
+          D.showAlbumsView();
+        }
       });
     }
 
@@ -153,8 +160,9 @@
       pageSize.addEventListener("change", function(e){
         var v=parseInt(e.target.value,10);
         D.per = (!isNaN(v) && [25,50,100,250].indexOf(v)!==-1) ? v : 100;
-        try{ localStorage.setItem(D.PER_KEY, String(D.per)); }catch(e){}
-        D.page=1; applyFilterAndPaginate();
+        try{ localStorage.setItem(D.PER_KEY, String(D.per)); }catch(ex){}
+        D.page=1;
+        applyFilterAndPaginate();
       });
     }
   }

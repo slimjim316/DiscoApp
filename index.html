@@ -7,9 +7,9 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="version-tag">v1.07c</div>
+  <div class="version-tag">v1.09</div>
 
-  <!-- LIST PAGE -->
+  <!-- ALBUMS PAGE (formerly listPage) -->
   <div id="listPage">
     <header>
       <div class="title">Library</div>
@@ -50,7 +50,35 @@
           <option value="100">Show 100</option>
           <option value="250">Show 250</option>
         </select>
-        <button id="toggle" class="btn" type="button">List View</button>
+        <button id="toggle" class="btn" type="button">Artists</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTISTS PAGE -->
+  <div id="artistsPage" style="display:none;">
+    <div class="artists-header">
+      <div class="artists-left">
+        <a id="artistBack" class="btn" href="#">◀︎ Back</a>
+      </div>
+      <div class="artists-title">Artists</div>
+      <div class="artists-right"><button id="headerRandomArtists" class="btn accent" type="button">🎲 Random</button></div>
+    </div>
+
+    <div class="artists-container">
+      <aside id="artistSidebar" class="artist-sidebar" aria-label="Artists"></aside>
+      <main id="artistMain" class="artist-main">
+        <div id="artistHeading" class="artist-heading"></div>
+        <div id="artistGrid" class="grid"></div>
+      </main>
+    </div>
+
+    <div class="toolbar" role="toolbar" aria-label="View options">
+      <div class="group">
+        <button id="randomArtists" class="btn accent" type="button">🎲 Random</button>
+      </div>
+      <div class="group">
+        <button id="toggleArtists" class="btn" type="button">Albums</button>
       </div>
     </div>
   </div>
@@ -72,6 +100,7 @@
   <!-- ES5, module-free load order (iOS 12 Safari compatible) -->
   <script src="core.js"></script>
   <script src="list.js"></script>
+  <script src="artists.js"></script>
   <script src="detail.js"></script>
   <script src="boot.js"></script>
 </body>
