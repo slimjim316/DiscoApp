@@ -119,42 +119,33 @@ main{padding:10px 10px 90px}
 }
 
 /* ===== Artists view ===== */
-
-/* Full-height layout so sidebar + grid can scroll independently */
-#artistsPage{
-  display:flex;
-  flex-direction:column;
-  height:100vh;
-}
-
 .artists-header{
   display:flex;align-items:center;justify-content:flex-start;
   padding:8px 12px;border-bottom:1px solid var(--hair);background:var(--bg);
   position:sticky;top:0;z-index:9;
 }
 
-/* Fill the remaining vertical space under the header */
+/* Make the artists area a fixed-height row so children can scroll */
 .artists-container{
   display:flex;
-  flex:1 1 auto;
-  min-height:0; /* required so children can scroll inside flex parent */
+  height:calc(100vh - 100px); /* viewport minus header/toolbar approx */
+  min-height:0;               /* allow children to shrink and scroll */
 }
 
-/* Left column: independent scroll */
+/* Left column: scrollable artist list */
 .artist-sidebar{
   width:260px;
   overflow-y:auto;
   border-right:1px solid var(--hair);
   padding:8px;
   background:var(--tile);
-  flex:0 0 auto;
   min-height:0;
 }
 
-/* Right column: independent scroll */
+/* Right column: scrollable album grid */
 .artist-main{
-  flex:1 1 auto;
-  padding:10px 12px 80px 12px; /* bottom pad so last row clears toolbar */
+  flex:1;
+  padding:10px 12px 80px 12px; /* bottom padding so grid clears toolbar */
   overflow-y:auto;
   min-height:0;
 }
@@ -170,12 +161,9 @@ main{padding:10px 10px 90px}
 
 /* Mobile stacked layout */
 @media (max-width:680px){
-  #artistsPage{
-    display:block;
-    height:auto;
-  }
   .artists-container{
     flex-direction:column;
+    height:auto;     /* go back to normal page scroll on small screens */
     min-height:auto;
   }
   .artist-sidebar{
@@ -191,6 +179,7 @@ main{padding:10px 10px 90px}
     overflow-y:visible;
   }
 }
+
 
 /* Details page */
 #listPage{display:block}
@@ -273,3 +262,4 @@ main{padding:10px 10px 90px}
   .mini-inner:hover .mini-artWrap::after{background:rgba(255,255,255,.12)}
 }
 @media (prefers-reduced-motion: reduce){.artWrap,.mini-artWrap,.img-fade{transition:none!important}}
+
