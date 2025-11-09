@@ -1,3 +1,6 @@
+// DiscoApp v1.09b build: 2025-11-09
+// track cache persist fix
+
 (function(){
   if (!window.DiscoApp) window.DiscoApp = {};
   var D = window.DiscoApp;
@@ -233,39 +236,49 @@
     indexTracksFor(candidates, lc);
     D.updateTrackProgress();
   };
-  function indexTracksFor(items, lc){
-    var queued=0;
-    for(var i=0;i<items.length;i++){
-      var it=items[i]; if(!it||!it.id) continue;
-      var rid=String(it.id);
-      if(D.TRACK_INDEX.hasOwnProperty(rid) || D.TRACK_INFLIGHT[rid]) continue;
-      D.TRACK_INFLIGHT[rid]=true; queued++;
-      (function(releaseId){
-        D.queue.push(function(done){
-          D.fetchRelease(releaseId,function(err,data){
-            var arr=[];
-            if(!err && data){
-              if(data.country){ D.RELEASE_COUNTRY[String(releaseId)]=data.country; }
-              if(data.tracklist && data.tracklist.length){
-                for(var t=0;t<data.tracklist.length;t++){
-                  var nm=(data.tracklist[t] && data.tracklist[t].title) ? String(data.tracklist[t].title).toLowerCase() : "";
-                  if(nm) arr.push(nm);
-                }
+function indexTracksFor(items, lc){
+  var queued=0;
+  for(var i=0;i<items.length;i++){
+    var it=items[i]; if(!it||!it.id) continue;
+    var rid=String(it.id);
+    if(D.TRACK_INDEX.hasOwnProperty(rid) || D.TRACK_INFLIGHT[rid]) continue;
+    D.TRACK_INFLIGHT[rid]=true; queued++;
+    (function(releaseId){
+      D.queue.push(function(done){
+        D.fetchRelease(releaseId,function(err,data){
+          var arr=[];
+          if(!err && data){
+            if(data.country){ D.RELEASE_COUNTRY[String(releaseId)]=data.country; }
+            if(data.tracklist && data.tracklist.length){
+              for(var t=0;t<data.tracklist.length;t++){
+                var nm=(data.tracklist[t] && data.tracklist[t].title) ? String(data.tracklist[t].title).toLowerCase() : "";
+                if(nm) arr.push(nm);
               }
             }
-            D.TRACK_INDEX[String(releaseId)]=arr;
-            delete D.TRACK_INFLIGHT[String(releaseId)];
-            done();
-            var hit=false;
-            if(arr && arr.length && lc.length>=3){ for(var z=0;z<arr.length;z++){ if(arr[z].indexOf(lc)>-1){ hit=true; break; } } }
-            if(hit || (D.RELEASE_COUNTRY[String(releaseId)]!=null)){ D.applyFilterAndPaginate(); }
-          });
+          }
+
+          D.TRACK_INDEX[String(releaseId)] = arr;
+          saveTracksCacheDebounced();   // ← **v1.09b: persist track cache**
+
+          delete D.TRACK_INFLIGHT[String(releaseId)];
+          done();
+
+          var hit=false;
+          if(arr && arr.length && lc.length>=3){
+            for(var z=0;z<arr.length;z++){
+              if(arr[z].indexOf(lc)>-1){ hit=true; break; }
+            }
+          }
+          if(hit || (D.RELEASE_COUNTRY[String(releaseId)]!=null)){
+            D.applyFilterAndPaginate();
+          }
         });
-      })(rid);
-      if(queued>=D.TRACK_MAX_FETCH_PER_QUERY) break;
-    }
-    D.runQueue();
+      });
+    })(rid);
+    if(queued>=D.TRACK_MAX_FETCH_PER_QUERY) break;
   }
+  D.runQueue();
+}
 
   /* sorting for releases (unchanged) */
   D.cmpItems=function(a,b){
