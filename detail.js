@@ -1,5 +1,4 @@
-// DiscoApp v1.09a build: 2025-11-09
-// Detail view: footer Back + Random, uses global D.openRandom()
+// DiscoApp v1.09c build: 2025-11-09
 
 (function(){
   var D = window.DiscoApp;
@@ -180,7 +179,9 @@
     h+='  <div class="md-art" id="md-art"><img id="md-art-img" alt="" class="img-fade" src="'+(art||'')+'"></div>';
     h+='  <div class="md-info" id="md-info">';
     h+='    <div class="md-title" id="md-album-title">'+D.escapeHtml(title)+'</div>';
-    if(artists) h+='    <div class="md-artist" id="md-artist">'+D.escapeHtml(artists)+'</div>';
+    if(artists){
+  h+='    <div class="md-artist clickable" id="md-artist" data-artist="'+D.escapeHtml(artists)+'">'+D.escapeHtml(artists)+'</div>';
+}
     h+='    <div class="md-lines">';
     var lineLabel=(labelName||catno)?(D.escapeHtml(labelName)+(catno?(" – "+D.escapeHtml(catno)):"")):"-";
     h+='      <div class="line"><span class="muted">Label</span> '+(lineLabel||"-")+'</div>';
@@ -221,6 +222,24 @@
 
     body.innerHTML=h;
 
+    // Make artist name clickable → jump to Artists view with that artist selected
+    var artistEl = document.getElementById('md-artist');
+    if (artistEl && artists && typeof D.setSelectedArtist === 'function' && typeof D.showArtistsView === 'function') {
+      artistEl.onclick = function(e){
+        if(e && e.preventDefault) e.preventDefault();
+        try {
+          var rawName = this.getAttribute('data-artist') || artists;
+          var norm = (typeof D.normalizeArtist === 'function')
+            ? D.normalizeArtist(rawName)
+            : rawName.toLowerCase();
+          D.setSelectedArtist(norm);
+        } catch (err) {
+          // fallback: just switch view if something goes wrong
+        }
+        D.showArtistsView();
+      };
+    }
+
     var imgEl=document.getElementById('md-art-img');
     if(imgEl){
       if(imgEl.complete && imgEl.naturalWidth){ imgEl.className += " show"; }
@@ -236,3 +255,4 @@
   }
   D.showDetails = showDetails;
 })();
+
