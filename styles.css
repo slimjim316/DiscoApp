@@ -1,4 +1,5 @@
-/* ===== DiscoApp v1.09 styles (Albums + Artists) ===== */
+/* DiscoApp v1.09a build: 2025-11-09 */
+/* ===== DiscoApp v1.09a styles (Albums + Artists) ===== */
 :root {
   --bg:#ffffff; --text:#111111; --muted:#6b6b6b; --hair:#e6e6e6;
   --red:#ff3b30; --tile:#f5f5f7; --bar:#0a84ff;
@@ -25,7 +26,7 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 12px 6p
 .api-status{display:none}
 main{padding:10px 10px 90px}
 
-/* Grid cards — Apple Music-esque cover polish + hover overlay */
+/* Grid cards */
 .grid{display:flex;flex-wrap:wrap;margin:-6px}
 .card{width:20%;padding:6px}
 .cardInner{background:var(--bg);border:none;border-radius:12px;overflow:visible;cursor:pointer;display:flex;flex-direction:column;height:100%}
@@ -52,7 +53,7 @@ main{padding:10px 10px 90px}
 @media (max-width:600px){.card{width:50%}}
 @media (max-width:380px){.card{width:100%}}
 
-/* List rows (unchanged) */
+/* List rows (legacy) */
 .list{list-style:none;padding:0;margin:0;display:none}
 .row{display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--hair);cursor:pointer}
 .thumbWrap{position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;background:#ddd;margin-right:12px;
@@ -77,8 +78,11 @@ main{padding:10px 10px 90px}
 }
 
 /* ===== Artists view ===== */
-.artists-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--hair);background:var(--bg);position:sticky;top:0;z-index:9}
-.artists-title{font-size:22px;font-weight:700}
+.artists-header{
+  display:flex;align-items:center;justify-content:flex-start;
+  padding:8px 12px;border-bottom:1px solid var(--hair);background:var(--bg);
+  position:sticky;top:0;z-index:9;
+}
 .artists-container{display:flex;min-height:calc(100vh - 100px)}
 .artist-sidebar{width:260px;overflow-y:auto;border-right:1px solid var(--hair);padding:8px;background:var(--tile)}
 .artist-item{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -95,17 +99,19 @@ main{padding:10px 10px 90px}
   .artists-container{flex-direction:column}
   .artist-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--hair);height:auto;max-height:50vh}
   .artist-main{padding-top:12px}
-  #artistBack{display:none}
 }
 
-/* Details page (unchanged core) */
+/* Details page */
 #listPage{display:block}
 #artistsPage{display:none}
-#detailPage{display:none;min-height:100vh}
-.detail-header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--hair);z-index:9;padding:8px 12px}
-.detail-topbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.detail-left{display:flex;gap:8px;align-items:center}
-.detail-body{padding:14px 16px 90px 16px;max-width:980px;margin:0 auto}
+#detailPage{display:none;min-height:100vh;padding-bottom:70px}
+.detail-body{padding:14px 16px 16px 16px;max-width:980px;margin:0 auto}
+.detail-footer{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg);border-top:1px solid var(--hair);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;
+}
 
 /* Cover block defaults */
 .md-head{display:flex;gap:18px;align-items:flex-start;margin-bottom:14px}

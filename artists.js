@@ -1,8 +1,5 @@
-// DiscoApp v1.09 — artists.js (Artists view)
-// - Sidebar list of artists (flat, sorted by normalized name)
-// - Right-hand / stacked grid of albums for selected artist
-// - Remembers selected artist in localStorage (D.selectedArtist)
-// - Mobile: stacked view with Back button to artist list
+// DiscoApp v1.09a build: 2025-11-09
+// Artists view: sidebar, grid, unified Random, footer controls
 
 (function(){
   var D = window.DiscoApp;
@@ -78,7 +75,6 @@
 
     sidebar.innerHTML = h;
 
-    // attach click handlers
     var items = sidebar.getElementsByClassName("artist-item");
     for(var j=0;j<items.length;j++){
       (function(el){
@@ -94,10 +90,9 @@
   }
 
   function renderArtistGrid(){
-    var main = document.getElementById("artistMain");
     var headingEl = document.getElementById("artistHeading");
     var grid = document.getElementById("artistGrid");
-    if(!main || !headingEl || !grid) return;
+    if(!headingEl || !grid) return;
 
     var current = ensureSelectedArtist();
     grid.innerHTML = "";
@@ -122,10 +117,7 @@
 
       var meta=document.createElement("div"); meta.className="meta";
 
-      // Album title only (artist line omitted)
       var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
-
-      // Year / Country / Master Year
       var s=document.createElement("div"); s.className="s";
       s.innerHTML = makeMetaLine(it);
 
@@ -157,7 +149,6 @@
       return;
     }
 
-    // stacked layout
     if(D.selectedArtist){
       sidebar.style.display = "none";
       main.style.display = "block";
@@ -169,29 +160,11 @@
     }
   }
 
-  function openRandomFromArtistOrAll(){
-    var list = ensureArtistIndex();
-    var pool = [];
-    var current = D.selectedArtist ? getArtistByNorm(D.selectedArtist) : null;
-    if(current && current.items && current.items.length){
-      pool = current.items;
-    }else{
-      pool = D.allItems || [];
-    }
-    if(!pool.length){
-      alert("Collection not loaded yet.");
-      return;
-    }
-    var idx = Math.floor(Math.random()*pool.length);
-    D.openDetailsById(pool[idx].id);
-  }
-
   function bindArtistsControls(){
     var back = document.getElementById("artistBack");
     if(back){
       back.addEventListener("click", function(e){
         if(e && e.preventDefault) e.preventDefault();
-        // clear selection and show list in stacked mode
         D.setSelectedArtist("");
         renderArtistSidebar();
         renderArtistGrid();
@@ -202,15 +175,9 @@
     var randomBtn = document.getElementById("randomArtists");
     if(randomBtn){
       randomBtn.addEventListener("click", function(){
-        openRandomFromArtistOrAll();
-      });
-    }
-
-    var headerRandom = document.getElementById("headerRandomArtists");
-    if(headerRandom){
-      headerRandom.addEventListener("click", function(e){
-        if(e && e.preventDefault) e.preventDefault();
-        openRandomFromArtistOrAll();
+        if(typeof D.openRandom === "function"){
+          D.openRandom();
+        }
       });
     }
 
@@ -236,7 +203,6 @@
     renderArtistGrid();
     updateArtistsLayout();
 
-    // sync toolbar toggle text
     var toggle = document.getElementById("toggleArtists");
     if(toggle){
       toggle.textContent = "Albums";

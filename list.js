@@ -1,7 +1,5 @@
-// DiscoApp v1.09 — list.js (Albums view)
-// - Albums view uses grid cards (unchanged visual layout)
-// - Toggle now switches between Albums and Artists views
-// - D.view is global ('albums' | 'artists'), managed via D.setView / D.showAlbumsView / D.showArtistsView
+// DiscoApp v1.09a build: 2025-11-09
+// Albums view: grid, unified Random, Albums ↔ Artists toggle
 
 (function(){
   var D = window.DiscoApp;
@@ -56,13 +54,8 @@
 
       var meta=document.createElement("div"); meta.className="meta";
 
-      // Album title
       var t=document.createElement("div"); t.className="t"; t.textContent=it.title;
-
-      // Artist line
       var a=document.createElement("div"); a.className="a"; a.textContent=it.artist;
-
-      // Year / Country / Master Year
       var s=document.createElement("div"); s.className="s";
       s.innerHTML = makeMetaLine(it);
 
@@ -77,7 +70,7 @@
     }
 
     var prev=document.getElementById("prev");
-    var next=document.getElementBy("next");
+    var next=document.getElementById("next");
     if(prev) prev.disabled = D.page<=1;
     if(next) next.disabled = D.page>=D.pages;
 
@@ -141,7 +134,13 @@
     }
 
     var random=document.getElementById("random");
-    if(random){ random.addEventListener("click", D.openRandom); }
+    if(random){
+      random.addEventListener("click", function(){
+        if(typeof D.openRandom === "function"){
+          D.openRandom();
+        }
+      });
+    }
 
     var toggle=document.getElementById("toggle");
     if(toggle){

@@ -1,3 +1,4 @@
+<!-- DiscoApp v1.09a build: 2025-11-09 -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,12 +8,12 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="version-tag">v1.09</div>
+  <div class="version-tag">v1.09a</div>
 
-  <!-- ALBUMS PAGE (formerly listPage) -->
+  <!-- ALBUMS PAGE -->
   <div id="listPage">
     <header>
-      <div class="title">Library</div>
+      <div class="title">Library - Albums</div>
       <div class="search">
         <span class="mag" aria-hidden="true">🔎</span>
         <input id="q" placeholder="Search" autocomplete="off" aria-label="Search releases">
@@ -21,10 +22,14 @@
         <span id="count">0 of 0</span>
         <div class="info-right">
           <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
-          <div class="progress-wrap" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
+          <div class="progress-wrap" aria-hidden="true">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
 
           <span id="trackProgressTxt" style="display:none;">Track titles: 0 / 0 (0 active)</span>
-          <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;"><div id="trackProgressBar" class="progress-bar"></div></div>
+          <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;">
+            <div id="trackProgressBar" class="progress-bar"></div>
+          </div>
 
           <span id="apiStatus" class="api-status">API busy, slowing down…</span>
           <span id="page">Page 1</span>
@@ -41,16 +46,16 @@
       <div class="group">
         <button id="prev" class="btn" type="button">◀︎ Prev</button>
         <button id="next" class="btn" type="button">Next ▶︎</button>
-        <button id="random" class="btn accent" type="button">🎲 Random</button>
-      </div>
-      <div class="group">
         <select id="pageSize" class="select" title="Items per page" aria-label="Items per page">
           <option value="25">Show 25</option>
           <option value="50">Show 50</option>
           <option value="100">Show 100</option>
           <option value="250">Show 250</option>
         </select>
+      </div>
+      <div class="group">
         <button id="toggle" class="btn" type="button">Artists</button>
+        <button id="random" class="btn accent" type="button">🎲 Random</button>
       </div>
     </div>
   </div>
@@ -58,11 +63,7 @@
   <!-- ARTISTS PAGE -->
   <div id="artistsPage" style="display:none;">
     <div class="artists-header">
-      <div class="artists-left">
-        <a id="artistBack" class="btn" href="#">◀︎ Back</a>
-      </div>
-      <div class="artists-title">Artists</div>
-      <div class="artists-right"><button id="headerRandomArtists" class="btn accent" type="button">🎲 Random</button></div>
+      <div class="title">Library - Artists</div>
     </div>
 
     <div class="artists-container">
@@ -75,26 +76,26 @@
 
     <div class="toolbar" role="toolbar" aria-label="View options">
       <div class="group">
-        <button id="randomArtists" class="btn accent" type="button">🎲 Random</button>
+        <a id="artistBack" class="btn" href="#">◀︎ Back</a>
       </div>
       <div class="group">
         <button id="toggleArtists" class="btn" type="button">Albums</button>
+        <button id="randomArtists" class="btn accent" type="button">🎲 Random</button>
       </div>
     </div>
   </div>
 
   <!-- DETAILS PAGE -->
   <div id="detailPage" role="document" aria-live="polite">
-    <div class="detail-header">
-      <div class="detail-topbar">
-        <div class="detail-left">
-          <a id="backBtn" class="btn" href="#">◀︎ Back</a>
-          <button id="headerRandom" class="btn accent" type="button">🎲 Random</button>
-        </div>
-        <span></span><span></span>
+    <div class="detail-body" id="detailBody"></div>
+    <div class="detail-footer">
+      <div class="group">
+        <a id="backBtn" class="btn" href="#">◀︎ Back</a>
+      </div>
+      <div class="group">
+        <button id="detailRandom" class="btn accent" type="button">🎲 Random</button>
       </div>
     </div>
-    <div class="detail-body" id="detailBody"></div>
   </div>
 
   <!-- ES5, module-free load order (iOS 12 Safari compatible) -->

@@ -1,6 +1,5 @@
-// DiscoApp v1.09 — detail.js
-// - No functional changes from v1.07c
-// - Updated version tag and kept sizing + "More by" logic
+// DiscoApp v1.09a build: 2025-11-09
+// Detail view: footer Back + Random, uses global D.openRandom()
 
 (function(){
   var D = window.DiscoApp;

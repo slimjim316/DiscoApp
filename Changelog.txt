@@ -1,0 +1,51 @@
+DiscoApp v1.09a — Changelog (2025-11-09)
+---------------------------------------
+
+Overview:
+This release refines the Random button behaviour, cleans up duplicate controls
+on the Artists view, and moves the Details header controls into a consistent
+footer toolbar.
+
+Changes:
+
+1. Random button behaviour
+   - Random now behaves the same from all views (Albums, Artists, Details).
+   - Always picks a random album from the full collection (D.allItems).
+   - Centralised in D.openRandom() in boot.js.
+
+2. Artists view toolbar
+   - Removed extra Random button from the Artists page header.
+   - Artists footer now has:
+       Left:  Back (in stacked/mobile layout when an artist is selected)
+       Right: Albums, Random
+
+3. Details page footer
+   - Previous header bar removed.
+   - New footer toolbar added:
+       Left:  Back
+       Right: Random
+   - Random in details uses global D.openRandom().
+
+4. Header copy and alignment
+   - Albums page header:  "Library - Albums"
+   - Artists page header: "Library - Artists"
+   - Artists header title aligned to the left to match Albums header.
+
+5. Albums footer layout
+   - Footer toolbar now:
+       Left:  ◀︎ Prev, Next ▶︎, Show X (page size)
+       Right: Artists, Random
+
+Compatibility:
+- Fully ES5 compatible (no modules, no arrow functions).
+- Works in iOS 12 Safari and modern desktop browsers.
+
+Deployment:
+- Replace the following files with their v1.09a versions:
+    index.html
+    list.js
+    artists.js
+    detail.js
+    boot.js
+    styles.css
+- core.js and other assets remain unchanged from v1.09.
