@@ -1,4 +1,4 @@
-/* DiscoApp v1.09c build: 2025-11-09 */
+/* DiscoApp v1.10a build: 2025-11-09 */
 
 :root {
   --bg:#ffffff; --text:#111111; --muted:#6b6b6b; --hair:#e6e6e6;
@@ -119,27 +119,77 @@ main{padding:10px 10px 90px}
 }
 
 /* ===== Artists view ===== */
+
+/* Full-height layout so sidebar + grid can scroll independently */
+#artistsPage{
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
 .artists-header{
   display:flex;align-items:center;justify-content:flex-start;
   padding:8px 12px;border-bottom:1px solid var(--hair);background:var(--bg);
   position:sticky;top:0;z-index:9;
 }
-.artists-container{display:flex;min-height:calc(100vh - 100px)}
-.artist-sidebar{width:260px;overflow-y:auto;border-right:1px solid var(--hair);padding:8px;background:var(--tile)}
+
+/* Fill the remaining vertical space under the header */
+.artists-container{
+  display:flex;
+  flex:1 1 auto;
+  min-height:0; /* required so children can scroll inside flex parent */
+}
+
+/* Left column: independent scroll */
+.artist-sidebar{
+  width:260px;
+  overflow-y:auto;
+  border-right:1px solid var(--hair);
+  padding:8px;
+  background:var(--tile);
+  flex:0 0 auto;
+  min-height:0;
+}
+
+/* Right column: independent scroll */
+.artist-main{
+  flex:1 1 auto;
+  padding:10px 12px 80px 12px; /* bottom pad so last row clears toolbar */
+  overflow-y:auto;
+  min-height:0;
+}
+
+.artist-heading{font-size:18px;font-weight:600;margin:8px 2px 12px}
+#artistGrid{margin-top:8px}
+
 .artist-item{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .artist-item:hover{background:rgba(0,0,0,0.05)}
 .artist-item.active{background:var(--red);color:#fff}
 .artist-name{font-weight:600}
 .artist-count{opacity:.6;font-size:13px;margin-left:4px}
-.artist-main{flex:1;padding:10px 12px}
-.artist-heading{font-size:18px;font-weight:600;margin:8px 2px 12px}
-#artistGrid{margin-top:8px}
 
 /* Mobile stacked layout */
 @media (max-width:680px){
-  .artists-container{flex-direction:column}
-  .artist-sidebar{width:100%;border-right:none;border-bottom:1px solid var(--hair);height:auto;max-height:50vh}
-  .artist-main{padding-top:12px}
+  #artistsPage{
+    display:block;
+    height:auto;
+  }
+  .artists-container{
+    flex-direction:column;
+    min-height:auto;
+  }
+  .artist-sidebar{
+    width:100%;
+    border-right:none;
+    border-bottom:1px solid var(--hair);
+    height:auto;
+    max-height:50vh;
+    overflow-y:auto;
+  }
+  .artist-main{
+    padding:10px 12px 90px 12px;
+    overflow-y:visible;
+  }
 }
 
 /* Details page */
@@ -223,5 +273,3 @@ main{padding:10px 10px 90px}
   .mini-inner:hover .mini-artWrap::after{background:rgba(255,255,255,.12)}
 }
 @media (prefers-reduced-motion: reduce){.artWrap,.mini-artWrap,.img-fade{transition:none!important}}
-
-
