@@ -1,3 +1,27 @@
+DiscoApp v1.09c — UI and Interaction Improvements (2025-11-09)
+------------------------------------------------------------
+Overview:
+This update refines the user interface for consistency and enhances navigation
+between the Details and Artists views.
+
+Changes:
+- All buttons and select controls now share a uniform height for a consistent
+  visual appearance across toolbars and footers.
+- Artist name on the Details page is now clickable:
+  • Opens the Artists view directly, with that artist automatically selected.
+  • Matches Apple Music–style navigation behaviour.
+  • Non-underlined, with a subtle hover effect for clarity.
+- Minor layout and alignment adjustments to maintain spacing on all devices.
+
+Files Updated:
+- styles.css
+- detail.js
+
+Result:
+A more consistent and intuitive interface with improved navigation and polished
+button alignment across all views (Albums, Artists, and Details).
+
+
 DiscoApp v1.09b — Track Caching Improvements (2025-11-09)
 ------------------------------------------------------------
 Overview:
