@@ -1,3 +1,23 @@
+DiscoApp v1.09b — Track Caching Improvements (2025-11-09)
+------------------------------------------------------------
+Overview:
+This update improves performance and stability by persisting release tracklists in localStorage, reducing repeated Discogs API calls between sessions.
+
+Changes:
+- Added automatic saving of track titles (D.TRACK_INDEX) to localStorage after new releases are fetched.
+- Restores cached track data on launch, avoiding redundant API requests.
+- Greatly reduces load times and API throttling during searches.
+- Introduced background debounce to write cache safely and efficiently.
+- Added safety limit to cache size (~300 releases) to prevent localStorage bloat.
+- Fully backward-compatible with existing data and Discogs tokens.
+
+Files Updated:
+- core.js only
+
+Result:
+Track titles now persist across sessions. After initial indexing, searches and details views load instantly without re-hitting the API.
+
+
 DiscoApp v1.09a — Changelog (2025-11-09)
 ---------------------------------------
 
