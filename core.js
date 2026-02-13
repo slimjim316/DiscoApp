@@ -1,4 +1,4 @@
-// DiscoApp v1.09b build: 2025-11-09
+// DiscoApp v2.01 build: 2026-02-13
 // track cache persist fix
 
 (function(){
@@ -8,7 +8,7 @@
   D.API  = "https://disco.slimjim316.workers.dev";
   D.USER = "slimjim316";
 
-  /* ===== v1.09 state ===== */
+  /* ===== v2.01 state (modern Edge baseline) ===== */
   D.page=1; D.per=100; D.folder=0; D.total=0; D.pages=1; D.q="";
   D.view="albums"; /* 'albums' | 'artists' */
   D.selectedArtist = ""; /* normalized key */

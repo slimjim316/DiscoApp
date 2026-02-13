@@ -1,4 +1,4 @@
-/* DiscoApp v1.10a build: 2025-11-09 */
+/* DiscoApp v2.01 build: 2026-02-13 */
 
 :root {
   --bg:#ffffff; --text:#111111; --muted:#6b6b6b; --hair:#e6e6e6;
@@ -8,16 +8,19 @@
 *{box-sizing:border-box} html,body{height:100%}
 body{
   margin:0; background:var(--bg); color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
 }
+
+/* Target device profile: Edge full-screen on 13" Surface Pro */
+#listPage,#artistsPage,#detailPage{max-width:1600px;margin:0 auto;}
 .version-tag{position:fixed;top:6px;right:10px;font-size:12px;color:var(--muted);opacity:.6;z-index:50;user-select:none}
 
 /* Header / search / info */
 header{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 12px 6px;border-bottom:1px solid var(--hair)}
-.title{font-size:28px;font-weight:700;margin:8px 2px 10px}
+.title{font-size:34px;font-weight:700;margin:8px 2px 12px}
 .search{display:flex;align-items:center;gap:8px;background:var(--tile);border:1px solid var(--hair);padding:10px 12px;border-radius:12px}
-.search input{flex:1;border:0;background:transparent;outline:none;font-size:16px;color:var(--text)}
+.search input{flex:1;border:0;background:transparent;outline:none;font-size:18px;color:var(--text)}
 .search .mag{opacity:.6}
 .info{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding:8px 2px 6px;gap:8px}
 .info-right{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -28,7 +31,7 @@ main{padding:10px 10px 90px}
 
 /* Grid cards */
 .grid{display:flex;flex-wrap:wrap;margin:-6px}
-.card{width:20%;padding:6px}
+.card{width:16.6667%;padding:8px}
 .cardInner{background:var(--bg);border:none;border-radius:12px;overflow:visible;cursor:pointer;display:flex;flex-direction:column;height:100%}
 .artWrap{
   position:relative;width:100%;padding-top:100%;background:#ddd;border:none;border-radius:14px;overflow:hidden;
@@ -48,10 +51,9 @@ main{padding:10px 10px 90px}
 .s{margin-top:2px;font-size:12px;color:var(--meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s .s-year{color:var(--meta-soft)} .s .s-mid{opacity:.5;margin:0 6px} .s .s-master{color:var(--meta-strong)}
 
-@media (max-width:1024px){.card{width:25%}}
-@media (max-width:820px){.card{width:33.3333%}}
-@media (max-width:600px){.card{width:50%}}
-@media (max-width:380px){.card{width:100%}}
+@media (max-width:1400px){.card{width:20%}}
+@media (max-width:1100px){.card{width:25%}}
+@media (max-width:900px){.card{width:33.3333%}}
 
 /* List rows (legacy) */
 .list{list-style:none;padding:0;margin:0;display:none}
@@ -159,8 +161,8 @@ main{padding:10px 10px 90px}
 .artist-name{font-weight:600}
 .artist-count{opacity:.6;font-size:13px;margin-left:4px}
 
-/* Mobile stacked layout */
-@media (max-width:680px){
+/* Compact layout fallback */
+@media (max-width:900px){
   .artists-container{
     flex-direction:column;
     height:auto;     /* go back to normal page scroll on small screens */

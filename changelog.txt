@@ -1,3 +1,78 @@
+DiscoApp v2.01a — Live Deploy Automation Update (2026-02-13)
+------------------------------------------------------------
+Overview:
+This update improves live publishing so any working branch can be deployed to GitHub Pages.
+
+Changes:
+- Updated Pages workflow trigger to run on pushes to any branch.
+- Added `gh-pages` branch ignore to prevent recursive deploy loops.
+- Keeps branch URL pattern unchanged: `/DiscoApp/<branch>/` for non-main branches.
+
+Files Updated:
+- .github/workflows/deploy-pages.yml
+- changelog.txt
+
+Result:
+Any pushed branch can now publish a live preview URL automatically via GitHub Actions.
+
+DiscoApp v2.01 — Surface Pro / Edge Full-Screen Baseline (2026-02-13)
+------------------------------------------------------------
+Overview:
+This release starts the modern v2 line and retires the legacy iOS-first baseline.
+
+Changes:
+- Updated visible version/build markers to v2.01.
+- Updated source headers to identify the modern v2 baseline.
+- Tuned UI density for full-screen Microsoft Edge on a 13" Surface Pro:
+  - Larger title and search text for desktop viewing distance.
+  - Six-column desktop album grid with updated breakpoints.
+  - Raised compact-layout breakpoint to 900px for non-target screens.
+- Clarified runtime target as modern browser load order.
+
+Files Updated:
+- index.html
+- core.js
+- styles.css
+- changelog.txt
+
+Result:
+DiscoApp now has a dedicated v2.01 baseline optimized for Edge full-screen usage on Surface Pro devices.
+
+DiscoApp v1.11b — GitHub Pages Branch Deploys (2026-02-13)
+------------------------------------------------------------
+Overview:
+This update enables a stable live URL strategy for branch builds on GitHub Pages.
+
+Changes:
+- Added a GitHub Actions workflow to publish static files to `gh-pages`.
+- Main/master continue at: https://slimjim316.github.io/DiscoApp/
+- Non-main branches publish at: https://slimjim316.github.io/DiscoApp/<branch>/
+
+Files Updated:
+- .github/workflows/deploy-pages.yml
+- changelog.txt
+
+Result:
+Each branch can have a live preview URL while keeping the main site URL unchanged.
+
+DiscoApp v1.11a — Branch Baseline (2026-02-13)
+------------------------------------------------------------
+Overview:
+This branch cut establishes a fresh version line for future feature work.
+
+Changes:
+- Bumped visible app version tag to v1.11a (branch).
+- Updated source build headers to align with the new branch baseline.
+- Added this release note entry as the starting point for the new version.
+
+Files Updated:
+- index.html
+- core.js
+- changelog.txt
+
+Result:
+A cleanly versioned branch-ready build that is easy to differentiate from prior releases.
+
 DiscoApp v1.09c — UI and Interaction Improvements (2025-11-09)
 ------------------------------------------------------------
 Overview:
