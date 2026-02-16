@@ -1,3 +1,26 @@
+DiscoApp v2.03 — Card Text Flow & Albums Grid Sizing (2026-02-16)
+------------------------------------------------------------
+Overview:
+This minor iteration improves card text flow and increases album cover size on
+the main Albums view for the 13" tablet deployment.
+
+Changes:
+- Increased Albums page cover size by moving the primary grid to 5 cards per
+  row on desktop/tablet widths.
+- Adjusted shared card metadata layout so non-bold lines (artist/year metadata)
+  sit directly under album titles.
+- Kept two-line title clamping while preserving consistent card heights.
+- Updated app build/version markers to v2.03.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+Albums and Artists cards read more naturally, with larger cover art on the
+Albums page and cleaner title-to-metadata vertical flow.
+
+
 DiscoApp v2.02 — Artist Grid & Title Wrapping Tweaks (2026-02-16)
 ------------------------------------------------------------
 Overview:
