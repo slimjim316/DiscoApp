@@ -1,3 +1,26 @@
+DiscoApp v2.02 — Artist Grid & Title Wrapping Tweaks (2026-02-16)
+------------------------------------------------------------
+Overview:
+This update applies small visual refinements requested for the Surface Pro
+full-screen Edge setup.
+
+Changes:
+- Increased album cover size in the Artists view by changing desktop layout to
+  5 covers per row (previously 6 on large screens).
+- Enabled album titles to wrap to a second line when needed.
+- Kept card metadata height consistent so the next row of covers stays aligned
+  even when some titles wrap and others do not.
+- Updated app build/version markers to v2.02.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+The Artists page is easier to scan, cover art is more prominent, and long album
+names are more readable without breaking grid alignment.
+
+
 DiscoApp v2.01 — Surface Pro / Edge Web-App Refresh (2026-02-16)
 ------------------------------------------------------------
 Overview:
