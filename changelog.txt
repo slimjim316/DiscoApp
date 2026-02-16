@@ -1,3 +1,30 @@
+DiscoApp v2.01 — Surface Pro / Edge Web-App Refresh (2026-02-16)
+------------------------------------------------------------
+Overview:
+This release modernizes the UI for a full-screen Microsoft Edge web-app on a
+13" Surface Pro and removes legacy iOS compatibility constraints from app
+metadata and documentation.
+
+Changes:
+- Updated app build/version markers to v2.01.
+- Simplified viewport metadata for modern desktop-class browsers.
+- Added application metadata (`application-name`, `theme-color`) for improved
+  Edge web-app integration.
+- Tuned layout for larger touch-first desktop screens:
+  • Larger headings, search text, info text, and control sizing.
+  • Wider progress bars and roomier spacing.
+  • Denser desktop grid (6 columns on wide displays).
+- Updated script-load comment to remove the iOS 12 compatibility note.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+A clearer, larger, and more touch-friendly interface optimized for Surface Pro
+full-screen Edge usage.
+
+
 DiscoApp v1.09c — UI and Interaction Improvements (2025-11-09)
 ------------------------------------------------------------
 Overview:
