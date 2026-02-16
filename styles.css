@@ -1,4 +1,4 @@
-/* DiscoApp v2.03 build: 2026-02-16 */
+/* DiscoApp v2.04 build: 2026-02-16 */
 
 :root {
   --bg:#ffffff; --text:#111111; --muted:#6b6b6b; --hair:#e6e6e6;
@@ -28,8 +28,8 @@ header{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 12px 6p
 main{padding:14px 14px 100px}
 
 /* Grid cards */
-.grid{display:flex;flex-wrap:wrap;margin:-6px}
-.card{width:20%;padding:8px}
+.grid{display:flex;flex-wrap:wrap;margin:-4px}
+.card{width:20%;padding:4px}
 .cardInner{background:var(--bg);border:none;border-radius:12px;overflow:visible;cursor:pointer;display:flex;flex-direction:column;height:100%}
 .artWrap{
   position:relative;width:100%;padding-top:100%;background:#ddd;border:none;border-radius:14px;overflow:hidden;
@@ -48,6 +48,12 @@ main{padding:14px 14px 100px}
 .a{margin-top:2px;font-size:13px;color:var(--meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s{margin-top:2px;font-size:13px;color:var(--meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .s .s-year{color:var(--meta-soft)} .s .s-mid{opacity:.5;margin:0 6px} .s .s-master{color:var(--meta-strong)}
+
+/* Hide year/meta line on main Albums + Artists pages (kept in details page) */
+#listPage .s,
+#artistsPage .s,
+#listPage .sL,
+#artistsPage .sL{display:none}
 
 @media (max-width:1024px){.card{width:25%}}
 @media (max-width:820px){.card{width:33.3333%}}
@@ -138,7 +144,7 @@ main{padding:14px 14px 100px}
   width:260px;
   overflow-y:auto;
   border-right:1px solid var(--hair);
-  padding:8px;
+  padding:8px 8px 96px 8px;
   background:var(--tile);
   min-height:0;
 }
@@ -146,7 +152,7 @@ main{padding:14px 14px 100px}
 /* Right column: scrollable album grid */
 .artist-main{
   flex:1;
-  padding:10px 12px 80px 12px; /* bottom padding so grid clears toolbar */
+  padding:10px 12px 96px 12px; /* bottom padding so grid clears toolbar */
   overflow-y:auto;
   min-height:0;
 }
@@ -175,6 +181,7 @@ main{padding:14px 14px 100px}
     height:auto;
     max-height:50vh;
     overflow-y:auto;
+    padding-bottom:96px;
   }
   .artist-main{
     padding:10px 12px 90px 12px;

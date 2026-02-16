@@ -1,3 +1,26 @@
+DiscoApp v2.04 — Grid Spacing, Year Suppression, and Artist List Footer Fix (2026-02-16)
+------------------------------------------------------------
+Overview:
+This update tightens card spacing, simplifies card metadata on main listing
+views, and fixes footer overlap in the Artists sidebar list.
+
+Changes:
+- Tightened vertical spacing between album rows by reducing grid/card spacing.
+- Removed years/meta line from main Albums and Artists pages; year details remain
+  available on each individual album details page.
+- Fixed Artists sidebar list overlap with fixed footer by adding bottom clearance
+  so the final artist entries can scroll fully into view.
+- Updated app build/version markers to v2.04.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+Denser browsing on main grids, cleaner primary metadata presentation, and fully
+accessible last entries in the Artists list.
+
+
 DiscoApp v2.03 — Card Text Flow & Albums Grid Sizing (2026-02-16)
 ------------------------------------------------------------
 Overview:
