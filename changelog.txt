@@ -1,3 +1,99 @@
+DiscoApp v2.04 — Grid Spacing, Year Suppression, and Artist List Footer Fix (2026-02-16)
+------------------------------------------------------------
+Overview:
+This update tightens card spacing, simplifies card metadata on main listing
+views, and fixes footer overlap in the Artists sidebar list.
+
+Changes:
+- Tightened vertical spacing between album rows by reducing grid/card spacing.
+- Removed years/meta line from main Albums and Artists pages; year details remain
+  available on each individual album details page.
+- Fixed Artists sidebar list overlap with fixed footer by adding bottom clearance
+  so the final artist entries can scroll fully into view.
+- Updated app build/version markers to v2.04.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+Denser browsing on main grids, cleaner primary metadata presentation, and fully
+accessible last entries in the Artists list.
+
+
+DiscoApp v2.03 — Card Text Flow & Albums Grid Sizing (2026-02-16)
+------------------------------------------------------------
+Overview:
+This minor iteration improves card text flow and increases album cover size on
+the main Albums view for the 13" tablet deployment.
+
+Changes:
+- Increased Albums page cover size by moving the primary grid to 5 cards per
+  row on desktop/tablet widths.
+- Adjusted shared card metadata layout so non-bold lines (artist/year metadata)
+  sit directly under album titles.
+- Kept two-line title clamping while preserving consistent card heights.
+- Updated app build/version markers to v2.03.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+Albums and Artists cards read more naturally, with larger cover art on the
+Albums page and cleaner title-to-metadata vertical flow.
+
+
+DiscoApp v2.02 — Artist Grid & Title Wrapping Tweaks (2026-02-16)
+------------------------------------------------------------
+Overview:
+This update applies small visual refinements requested for the Surface Pro
+full-screen Edge setup.
+
+Changes:
+- Increased album cover size in the Artists view by changing desktop layout to
+  5 covers per row (previously 6 on large screens).
+- Enabled album titles to wrap to a second line when needed.
+- Kept card metadata height consistent so the next row of covers stays aligned
+  even when some titles wrap and others do not.
+- Updated app build/version markers to v2.02.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+The Artists page is easier to scan, cover art is more prominent, and long album
+names are more readable without breaking grid alignment.
+
+
+DiscoApp v2.01 — Surface Pro / Edge Web-App Refresh (2026-02-16)
+------------------------------------------------------------
+Overview:
+This release modernizes the UI for a full-screen Microsoft Edge web-app on a
+13" Surface Pro and removes legacy iOS compatibility constraints from app
+metadata and documentation.
+
+Changes:
+- Updated app build/version markers to v2.01.
+- Simplified viewport metadata for modern desktop-class browsers.
+- Added application metadata (`application-name`, `theme-color`) for improved
+  Edge web-app integration.
+- Tuned layout for larger touch-first desktop screens:
+  • Larger headings, search text, info text, and control sizing.
+  • Wider progress bars and roomier spacing.
+  • Denser desktop grid (6 columns on wide displays).
+- Updated script-load comment to remove the iOS 12 compatibility note.
+
+Files Updated:
+- index.html
+- styles.css
+
+Result:
+A clearer, larger, and more touch-friendly interface optimized for Surface Pro
+full-screen Edge usage.
+
+
 DiscoApp v1.09c — UI and Interaction Improvements (2025-11-09)
 ------------------------------------------------------------
 Overview:
