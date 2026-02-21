@@ -184,8 +184,10 @@
     var toggleArtists = document.getElementById("toggleArtists");
     if(toggleArtists){
       toggleArtists.addEventListener("click", function(){
-        if(typeof D.showAlbumsView === "function"){
+        if(D.view === "artists" && typeof D.showAlbumsView === "function"){
           D.showAlbumsView();
+        }else if(typeof D.showArtistsView === "function"){
+          D.showArtistsView();
         }
       });
     }
@@ -202,11 +204,6 @@
     renderArtistSidebar();
     renderArtistGrid();
     updateArtistsLayout();
-
-    var toggle = document.getElementById("toggleArtists");
-    if(toggle){
-      toggle.textContent = "Albums";
-    }
   }
   D.renderArtistsView = renderArtistsView;
 

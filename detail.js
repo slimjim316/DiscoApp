@@ -1,21 +1,21 @@
-// DiscoApp v1.09c build: 2025-11-09
+// DiscoApp v3.01 build: 2026-02-21
 
 (function(){
   var D = window.DiscoApp;
 
   function formatFormats(arr){
-    if(!arr || !arr.length) return "";
+    if(!arr || !arr.length) return '';
     var out=[], seen={};
     for(var i=0;i<arr.length;i++){
       var f=arr[i]||{};
-      var base=""; var qty=(f.qty!=null && String(f.qty)!=="" && String(f.qty)!=="1") ? (String(f.qty)+"×") : "";
+      var base=''; var qty=(f.qty!=null && String(f.qty)!=='' && String(f.qty)!=='1') ? (String(f.qty)+'×') : '';
       if(f.name){ base=qty+String(f.name); if(!seen[base]){ out.push(base); seen[base]=1; } }
       if(f.descriptions && f.descriptions.length){
         for(var j=0;j<f.descriptions.length;j++){ var d=String(f.descriptions[j]); if(!seen[d]){ out.push(d); seen[d]=1; } }
       }
       if(f.text){ var t=String(f.text); if(!seen[t]){ out.push(t); seen[t]=1; } }
     }
-    return out.join(", ");
+    return out.join(', ');
   }
 
   function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
@@ -36,6 +36,23 @@
       artEl.style.height = '320px';
     }
   }
+
+  function openDrawer(){
+    var drawer = document.getElementById('details-drawer');
+    if(!drawer) return;
+    drawer.hidden = false;
+    drawer.classList.add('open');
+  }
+
+  function closeDrawer(){
+    var drawer = document.getElementById('details-drawer');
+    if(!drawer) return;
+    drawer.classList.remove('open');
+    drawer.hidden = true;
+    window.scrollTo(0, D.scrollMemo||0);
+  }
+
+  D.closeDetailsDrawer = closeDrawer;
 
   function moreByTitle(artist){ return 'More by '+D.escapeHtml(artist); }
 
@@ -59,7 +76,7 @@
     for(var j=0;j<others.length;j++){
       var it=others[j];
       var y=D.joinYearCountry(it.year, D.countryForItem(it));
-      var my=(it.master_year!=null)?String(it.master_year):"-";
+      var my=(it.master_year!=null)?String(it.master_year):'-';
       h+='<div class="mini-card">';
       h+='<div class="mini-inner" data-id="'+it.id+'">';
       h+='<div class="mini-artWrap"><img class="mini-art img-fade" alt="" src="'+(it.thumb||'')+'"></div>';
@@ -78,8 +95,8 @@
     var imgs=mount.getElementsByClassName('img-fade');
     for(var k=0;k<imgs.length;k++){
       (function(im){
-        if(im.complete && im.naturalWidth){ im.className += " show"; }
-        else{ im.onload=function(){ im.className += " show"; }; }
+        if(im.complete && im.naturalWidth){ im.className += ' show'; }
+        else{ im.onload=function(){ im.className += ' show'; }; }
       })(imgs[k]);
     }
 
@@ -95,46 +112,42 @@
   D.openDetailsById=function(id){
     D.scrollMemo = window.scrollY || document.documentElement.scrollTop || 0;
     D.fetchRelease(id, function(err, rel){
-      if(err){ alert("Could not load details: " + err.message); return; }
+      if(err){ alert('Could not load details: ' + err.message); return; }
       if(rel && rel.country){ D.RELEASE_COUNTRY[String(id)]=rel.country; }
       showDetails(rel);
-      document.getElementById('listPage').style.display='none';
-      document.getElementById('artistsPage').style.display='none';
-      document.getElementById('detailPage').style.display='block';
-      window.scrollTo(0,0);
+      openDrawer();
+      window.scrollTo(0, D.scrollMemo||0);
     });
   };
 
   D.backToList = function(e){
     if(e) e.preventDefault();
-    document.getElementById('detailPage').style.display='none';
-    if(D.view === "artists"){
-      document.getElementById('artistsPage').style.display='block';
-    }else{
-      document.getElementById('listPage').style.display='block';
-    }
-    window.scrollTo(0, D.scrollMemo||0);
+    closeDrawer();
   };
 
-  function showDetails(release){
-    var body=document.getElementById("detailBody");
-    if(!body) return;
-    var title = release.title || "";
-    var artists = (release.artists && release.artists[0] ? release.artists[0].name : "");
-    var year = D.validYear(release.year);
-    var art = (release.images && release.images[0] ? release.images[0].uri : "");
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeDrawer();
+  });
 
-    var labelName="", catno="";
+  function showDetails(release){
+    var body=document.getElementById('detailBody');
+    if(!body) return;
+    var title = release.title || '';
+    var artists = (release.artists && release.artists[0] ? release.artists[0].name : '');
+    var year = D.validYear(release.year);
+    var art = (release.images && release.images[0] ? release.images[0].uri : '');
+
+    var labelName='', catno='';
     if(release.labels && release.labels[0]){
-      labelName = release.labels[0].name || "";
-      catno     = release.labels[0].catno || "";
+      labelName = release.labels[0].name || '';
+      catno     = release.labels[0].catno || '';
     }
     var formatFull = formatFormats(release.formats);
-    var country    = release.country || "";
-    var rawRel     = release.released || release.released_formatted || "";
+    var country    = release.country || '';
+    var rawRel     = release.released || release.released_formatted || '';
     var releasedYr = D.firstYearFromString(rawRel) || (year!=null?year:null);
-    var genres = (release.genres ? release.genres.join(", ") : "");
-    var styles = (release.styles ? release.styles.join(", ") : "");
+    var genres = (release.genres ? release.genres.join(', ') : '');
+    var styles = (release.styles ? release.styles.join(', ') : '');
 
     var masterYear = null;
     if(release.master_id && D.MASTER_YEAR[release.master_id]!=null){
@@ -143,7 +156,7 @@
 
     function parseDurToSec(d){
       if(!d) return 0;
-      var parts=String(d).trim().split(":").map(function(x){return parseInt(x,10)||0;});
+      var parts=String(d).trim().split(':').map(function(x){return parseInt(x,10)||0;});
       if(parts.length===1) return parts[0];
       if(parts.length===2) return parts[0]*60 + parts[1];
       if(parts.length>=3)  return parts[0]*3600 + parts[1]*60 + parts[2];
@@ -159,37 +172,35 @@
     }
     var totalMinutes=Math.round(totalSec/60);
 
-    var pCopyright="";
+    var pCopyright='';
     if(release.companies && release.companies.length){
       for(var c=0;c<release.companies.length;c++){
         var co=release.companies[c];
-        var type=(co.entity_type_name || co.entity_type || "").toLowerCase();
-        if(type.indexOf("phonographic")!==-1){
-          var name=co.name||"";
-          var yr=releasedYr ? releasedYr : (year||"");
-          pCopyright="℗ " + (yr ? (yr+" ") : "") + name;
+        var type=(co.entity_type_name || co.entity_type || '').toLowerCase();
+        if(type.indexOf('phonographic')!==-1){
+          var name=co.name||'';
+          var yr=releasedYr ? releasedYr : (year||'');
+          pCopyright='℗ ' + (yr ? (yr+' ') : '') + name;
           break;
         }
       }
     }
-    if(!pCopyright && release.copyright){ pCopyright = "℗ " + release.copyright; }
+    if(!pCopyright && release.copyright){ pCopyright = '℗ ' + release.copyright; }
 
     var h='';
     h+='<div class="md-head" id="md-head-block">';
     h+='  <div class="md-art" id="md-art"><img id="md-art-img" alt="" class="img-fade" src="'+(art||'')+'"></div>';
     h+='  <div class="md-info" id="md-info">';
     h+='    <div class="md-title" id="md-album-title">'+D.escapeHtml(title)+'</div>';
-    if(artists){
-  h+='    <div class="md-artist clickable" id="md-artist" data-artist="'+D.escapeHtml(artists)+'">'+D.escapeHtml(artists)+'</div>';
-}
+    if(artists){ h+='    <div class="md-artist clickable" id="md-artist" data-artist="'+D.escapeHtml(artists)+'">'+D.escapeHtml(artists)+'</div>'; }
     h+='    <div class="md-lines">';
-    var lineLabel=(labelName||catno)?(D.escapeHtml(labelName)+(catno?(" – "+D.escapeHtml(catno)):"")):"-";
-    h+='      <div class="line"><span class="muted">Label</span> '+(lineLabel||"-")+'</div>';
-    h+='      <div class="line"><span class="muted">Format</span> '+D.escapeHtml(formatFull||"")+'</div>';
-    h+='      <div class="line"><span class="muted">Country</span> '+(country||"-")+'</div>';
-    h+='      <div class="line"><span class="muted">Released</span> '+(releasedYr!=null?releasedYr:"-")+'</div>';
-    h+='      <div class="line"><span class="muted">Genre</span> '+(genres||"-")+'</div>';
-    h+='      <div class="line"><span class="muted">Style</span> '+(styles||"-")+'</div>';
+    var lineLabel=(labelName||catno)?(D.escapeHtml(labelName)+(catno?(' – '+D.escapeHtml(catno)):'')):'-';
+    h+='      <div class="line"><span class="muted">Label</span> '+(lineLabel||'-')+'</div>';
+    h+='      <div class="line"><span class="muted">Format</span> '+D.escapeHtml(formatFull||'')+'</div>';
+    h+='      <div class="line"><span class="muted">Country</span> '+(country||'-')+'</div>';
+    h+='      <div class="line"><span class="muted">Released</span> '+(releasedYr!=null?releasedYr:'-')+'</div>';
+    h+='      <div class="line"><span class="muted">Genre</span> '+(genres||'-')+'</div>';
+    h+='      <div class="line"><span class="muted">Style</span> '+(styles||'-')+'</div>';
     h+='    </div>';
     h+='  </div>';
     h+='</div>';
@@ -198,9 +209,9 @@
       h+='<ul class="tracks">';
       for(var i2=0;i2<release.tracklist.length;i2++){
         var tt=release.tracklist[i2]||{};
-        var nm=tt.title||"";
+        var nm=tt.title||'';
         var pos=tt.position || (i2+1);
-        var dur=tt.duration||"";
+        var dur=tt.duration||'';
         h+='<li class="tr">';
         h+=' <div class="no">'+D.escapeHtml(String(pos))+'</div>';
         h+=' <div class="twrap"><div class="name">'+D.escapeHtml(nm)+'</div></div>';
@@ -213,7 +224,7 @@
     h+='<div class="detail-foot"><span class="muted">Master release</span>: '
       + (masterYear!=null ? '<span class="s-master" title="Master release year">'+D.escapeHtml(String(masterYear))+'</span>' : '-') + '</div>';
 
-    var songsLine=(trackCount ? (trackCount+' song'+(trackCount>1?'s':'')+(totalMinutes? (', '+totalMinutes+' minutes') : '')) : "-");
+    var songsLine=(trackCount ? (trackCount+' song'+(trackCount>1?'s':'')+(totalMinutes? (', '+totalMinutes+' minutes') : '')) : '-');
     h+='<div class="detail-foot">'+songsLine+'</div>';
     if(pCopyright){ h+='<div class="detail-foot">'+D.escapeHtml(pCopyright)+'</div>'; }
     if(release.uri){ h+='<a class="deep-link" target="_blank" rel="noopener" href="'+release.uri+'">Open in Discogs ↗</a>'; }
@@ -222,32 +233,26 @@
 
     body.innerHTML=h;
 
-    // Make artist name clickable → jump to Artists view with that artist selected
     var artistEl = document.getElementById('md-artist');
     if (artistEl && artists && typeof D.setSelectedArtist === 'function' && typeof D.showArtistsView === 'function') {
       artistEl.onclick = function(e){
         if(e && e.preventDefault) e.preventDefault();
         try {
           var rawName = this.getAttribute('data-artist') || artists;
-          var norm = (typeof D.normalizeArtist === 'function')
-            ? D.normalizeArtist(rawName)
-            : rawName.toLowerCase();
+          var norm = (typeof D.normalizeArtist === 'function') ? D.normalizeArtist(rawName) : rawName.toLowerCase();
           D.setSelectedArtist(norm);
-        } catch (err) {
-          // fallback: just switch view if something goes wrong
-        }
+        } catch (err) {}
         D.showArtistsView();
       };
     }
 
     var imgEl=document.getElementById('md-art-img');
     if(imgEl){
-      if(imgEl.complete && imgEl.naturalWidth){ imgEl.className += " show"; }
-      else{ imgEl.onload=function(){ imgEl.className += " show"; }; }
+      if(imgEl.complete && imgEl.naturalWidth){ imgEl.className += ' show'; }
+      else{ imgEl.onload=function(){ imgEl.className += ' show'; }; }
     }
 
-    function deferSize(){ sizeArt(); }
-    if(window.requestAnimationFrame){ requestAnimationFrame(deferSize); } else { setTimeout(sizeArt,0); }
+    if(window.requestAnimationFrame){ requestAnimationFrame(sizeArt); } else { setTimeout(sizeArt,0); }
     setTimeout(sizeArt,50); setTimeout(sizeArt,250);
     window.addEventListener('resize', sizeArt);
 
@@ -255,4 +260,3 @@
   }
   D.showDetails = showDetails;
 })();
-

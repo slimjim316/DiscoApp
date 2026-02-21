@@ -1,106 +1,90 @@
-<!-- DiscoApp v2.04 build: 2026-02-16 -->
+<!-- DiscoApp v3.01 build: 2026-02-21 -->
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="system">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="application-name" content="DiscoApp">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#f3f4f7">
   <title>DiscoApp · Library</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="version-tag">v2.04</div>
+  <div class="version-tag">v3.01</div>
 
-  <!-- ALBUMS PAGE -->
-  <div id="listPage">
-    <header>
-      <div class="title">Library - Albums</div>
-      <div class="search">
-        <span class="mag" aria-hidden="true">🔎</span>
-        <input id="q" placeholder="Search" autocomplete="off" aria-label="Search releases">
+  <aside id="rail" aria-label="Navigation and controls">
+    <div class="rail-top">
+      <button id="toggle" class="btn rail-tab active" type="button">Albums</button>
+      <button id="toggleArtists" class="btn rail-tab" type="button">Artists</button>
+    </div>
+
+    <div class="search">
+      <span class="mag" aria-hidden="true">🔎</span>
+      <input id="q" placeholder="Search" autocomplete="off" aria-label="Search releases">
+    </div>
+
+    <div class="rail-actions">
+      <button id="random" class="btn accent" type="button">🎲 Random</button>
+      <button id="randomArtists" class="btn accent" type="button">🎲 Random</button>
+      <label class="theme-row" for="themeMode">Theme</label>
+      <select id="themeMode" class="select" aria-label="Theme mode">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+
+    <div class="info index-pill" id="indexingPill">
+      <span id="count">0 of 0</span>
+      <span id="page" class="hidden">Page 1</span>
+      <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
+      <div class="progress-wrap" aria-hidden="true">
+        <div id="progressBar" class="progress-bar"></div>
       </div>
-      <div class="info">
-        <span id="count">0 of 0</span>
-        <div class="info-right">
-          <span id="progressTxt">Master years: 0 / 0 (0 active)</span>
-          <div class="progress-wrap" aria-hidden="true">
-            <div id="progressBar" class="progress-bar"></div>
-          </div>
+      <span id="trackProgressTxt" style="display:none;">Track titles: 0 / 0 (0 active)</span>
+      <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;">
+        <div id="trackProgressBar" class="progress-bar"></div>
+      </div>
+      <span id="apiStatus" class="api-status">API busy, slowing down…</span>
+    </div>
+  </aside>
 
-          <span id="trackProgressTxt" style="display:none;">Track titles: 0 / 0 (0 active)</span>
-          <div id="trackProgressWrap" class="progress-wrap" aria-hidden="true" style="display:none;">
-            <div id="trackProgressBar" class="progress-bar"></div>
-          </div>
+  <main id="canvas">
+    <div id="listPage">
+      <div id="grid" class="grid" aria-live="polite"></div>
+      <ul id="list" class="list" aria-live="polite"></ul>
+      <div id="scrollSentinel" aria-hidden="true"></div>
+      <div id="prev" hidden></div>
+      <div id="next" hidden></div>
+      <select id="pageSize" hidden><option value="100">Show 100</option></select>
+    </div>
 
-          <span id="apiStatus" class="api-status">API busy, slowing down…</span>
-          <span id="page">Page 1</span>
+    <div id="artistsPage" style="display:none;">
+      <div class="artists-container">
+        <aside id="artistSidebar" class="artist-sidebar" aria-label="Artists"></aside>
+        <main id="artistMain" class="artist-main">
+          <a id="artistBack" class="btn" href="#">◀︎ Back</a>
+          <div id="artistHeading" class="artist-heading"></div>
+          <div id="artistGrid" class="grid"></div>
+        </main>
+      </div>
+    </div>
+  </main>
+
+  <div id="details-drawer" hidden>
+    <div id="detailPage" role="document" aria-live="polite">
+      <div class="detail-body" id="detailBody"></div>
+      <div class="detail-footer">
+        <div class="group">
+          <a id="backBtn" class="btn" href="#">✕ Close</a>
+        </div>
+        <div class="group">
+          <button id="detailRandom" class="btn accent" type="button">🎲 Random</button>
         </div>
       </div>
-    </header>
-
-    <main>
-      <div id="grid" class="grid" aria-live="polite" style="display:block;"></div>
-      <ul id="list" class="list" aria-live="polite"></ul>
-    </main>
-
-    <div class="toolbar" role="toolbar" aria-label="Paging and view options">
-      <div class="group">
-        <button id="prev" class="btn" type="button">◀︎ Prev</button>
-        <button id="next" class="btn" type="button">Next ▶︎</button>
-        <select id="pageSize" class="select" title="Items per page" aria-label="Items per page">
-          <option value="25">Show 25</option>
-          <option value="50">Show 50</option>
-          <option value="100">Show 100</option>
-          <option value="250">Show 250</option>
-        </select>
-      </div>
-      <div class="group">
-        <button id="toggle" class="btn" type="button">Artists</button>
-        <button id="random" class="btn accent" type="button">🎲 Random</button>
-      </div>
     </div>
   </div>
 
-  <!-- ARTISTS PAGE -->
-  <div id="artistsPage" style="display:none;">
-    <div class="artists-header">
-      <div class="title">Library - Artists</div>
-    </div>
-
-    <div class="artists-container">
-      <aside id="artistSidebar" class="artist-sidebar" aria-label="Artists"></aside>
-      <main id="artistMain" class="artist-main">
-        <div id="artistHeading" class="artist-heading"></div>
-        <div id="artistGrid" class="grid"></div>
-      </main>
-    </div>
-
-    <div class="toolbar" role="toolbar" aria-label="View options">
-      <div class="group">
-        <a id="artistBack" class="btn" href="#">◀︎ Back</a>
-      </div>
-      <div class="group">
-        <button id="toggleArtists" class="btn" type="button">Albums</button>
-        <button id="randomArtists" class="btn accent" type="button">🎲 Random</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- DETAILS PAGE -->
-  <div id="detailPage" role="document" aria-live="polite">
-    <div class="detail-body" id="detailBody"></div>
-    <div class="detail-footer">
-      <div class="group">
-        <a id="backBtn" class="btn" href="#">◀︎ Back</a>
-      </div>
-      <div class="group">
-        <button id="detailRandom" class="btn accent" type="button">🎲 Random</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Script load order -->
   <script src="core.js"></script>
   <script src="list.js"></script>
   <script src="artists.js"></script>
@@ -108,6 +92,3 @@
   <script src="boot.js"></script>
 </body>
 </html>
-
-
-
