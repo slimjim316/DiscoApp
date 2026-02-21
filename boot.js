@@ -1,13 +1,34 @@
-// DiscoApp v1.09a build: 2025-11-09
-// Init, view switching, and unified Random behaviour
+// DiscoApp v3.01 build: 2026-02-21
+// Init, theme control, view switching, and unified Random behaviour
 
 (function(){
   var D = window.DiscoApp;
+  var THEME_KEY = 'disco.theme';
+
+  function applyTheme(mode){
+    var html = document.documentElement;
+    var valid = { light:1, dark:1, system:1 };
+    var next = valid[mode] ? mode : 'system';
+    html.setAttribute('data-theme', next);
+    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+    var themeMode = document.getElementById('themeMode');
+    if(themeMode) themeMode.value = next;
+  }
+
+  function initTheme(){
+    var stored = 'system';
+    try{ stored = localStorage.getItem(THEME_KEY) || 'system'; }catch(e){}
+    applyTheme(stored);
+    var themeMode = document.getElementById('themeMode');
+    if(themeMode){
+      themeMode.addEventListener('change', function(e){ applyTheme(e.target.value); });
+    }
+  }
 
   function openRandom(){
     var pool = D.allItems || [];
     if(!pool.length){
-      alert("Collection not loaded yet.");
+      alert('Collection not loaded yet.');
       return;
     }
     var idx = Math.floor(Math.random() * pool.length);
@@ -15,54 +36,45 @@
   }
   D.openRandom = openRandom;
 
-  /* ===== View Switching ===== */
+  function updateRailState(){
+    var albums = document.getElementById('toggle');
+    var artists = document.getElementById('toggleArtists');
+    if(albums) albums.classList.toggle('active', D.view === 'albums');
+    if(artists) artists.classList.toggle('active', D.view === 'artists');
+  }
 
   D.showAlbumsView = function(){
-    D.setView("albums");
-    var listPage = document.getElementById("listPage");
-    var artistsPage = document.getElementById("artistsPage");
-    var detailPage = document.getElementById("detailPage");
-    if(listPage) listPage.style.display = "block";
-    if(artistsPage) artistsPage.style.display = "none";
-    if(detailPage) detailPage.style.display = "none";
+    D.setView('albums');
+    var listPage = document.getElementById('listPage');
+    var artistsPage = document.getElementById('artistsPage');
+    if(listPage) listPage.style.display = 'block';
+    if(artistsPage) artistsPage.style.display = 'none';
+    if(typeof D.closeDetailsDrawer === 'function') D.closeDetailsDrawer();
 
-    if(typeof D.applyFilterAndPaginate === "function"){
+    updateRailState();
+
+    if(typeof D.applyFilterAndPaginate === 'function'){
       D.applyFilterAndPaginate();
     }
   };
 
   D.showArtistsView = function(){
-    D.setView("artists");
-    var listPage = document.getElementById("listPage");
-    var artistsPage = document.getElementById("artistsPage");
-    var detailPage = document.getElementById("detailPage");
-    if(listPage) listPage.style.display = "none";
-    if(artistsPage) artistsPage.style.display = "block";
-    if(detailPage) detailPage.style.display = "none";
+    D.setView('artists');
+    var listPage = document.getElementById('listPage');
+    var artistsPage = document.getElementById('artistsPage');
+    if(listPage) listPage.style.display = 'none';
+    if(artistsPage) artistsPage.style.display = 'block';
+    if(typeof D.closeDetailsDrawer === 'function') D.closeDetailsDrawer();
 
-    if(typeof D.renderArtistsView === "function"){
+    updateRailState();
+
+    if(typeof D.renderArtistsView === 'function'){
       D.renderArtistsView();
     }
   };
 
-  D.backToList = function(e){
-    if(e) e.preventDefault();
-    var detailPage = document.getElementById("detailPage");
-    var listPage = document.getElementById("listPage");
-    var artistsPage = document.getElementById("artistsPage");
-    if(detailPage) detailPage.style.display = "none";
-    if(D.view === "albums" && listPage){
-      listPage.style.display = "block";
-      window.scrollTo(0, D.scrollMemo||0);
-    }else if(D.view === "artists" && artistsPage){
-      artistsPage.style.display = "block";
-      window.scrollTo(0, 0);
-    }
-  };
-
   function boot(){
-    var pageSize=document.getElementById('pageSize');
-    if(pageSize){ pageSize.value=String(D.per); }
+    initTheme();
 
     if(D.bindListControls) D.bindListControls();
     if(D.bindArtistsControls) D.bindArtistsControls();
@@ -79,23 +91,18 @@
     }
 
     D.fetchAllItems(function(){
-      if(typeof D.buildArtistIndex === "function"){
+      if(typeof D.buildArtistIndex === 'function'){
         D.buildArtistIndex();
       }
 
-      if(D.view === "artists" && typeof D.showArtistsView === "function"){
+      if(D.view === 'artists' && typeof D.showArtistsView === 'function'){
         D.showArtistsView();
-      }else{
-        if(typeof D.applyFilterAndPaginate === "function"){
-          D.applyFilterAndPaginate();
-        }
+      }else if(typeof D.applyFilterAndPaginate === 'function'){
+        D.applyFilterAndPaginate();
       }
     });
   }
 
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', boot);
-  }else{
-    boot();
-  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
